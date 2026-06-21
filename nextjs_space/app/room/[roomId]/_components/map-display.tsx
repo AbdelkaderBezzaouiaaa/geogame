@@ -28,27 +28,34 @@ export default function MapDisplay({ lat, lng }: MapDisplayProps) {
           style: {
             version: 8,
             sources: {
-              'osm-tiles': {
-                type: 'raster',
-                tiles: [
-                  'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-                ],
-                tileSize: 256,
-                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+              countries: {
+                type: 'geojson',
+                data: 'https://cdn.jsdelivr.net/gh/datasets/geo-countries@master/data/countries.geojson',
+                attribution: 'Country boundaries: Natural Earth',
               },
             },
             layers: [
               {
-                id: 'osm-tiles-layer',
-                type: 'raster',
-                source: 'osm-tiles',
-                minzoom: 0,
-                maxzoom: 19,
+                id: 'background',
+                type: 'background',
+                paint: { 'background-color': '#0f172a' },
+              },
+              {
+                id: 'country-fill',
+                type: 'fill',
+                source: 'countries',
+                paint: { 'fill-color': '#1e293b', 'fill-opacity': 0.9 },
+              },
+              {
+                id: 'country-outline',
+                type: 'line',
+                source: 'countries',
+                paint: { 'line-color': '#94a3b8', 'line-width': 1.2 },
               },
             ],
           },
           center: [lng, lat],
-          zoom: 4.5,
+          zoom: 3.5,
           interactive: false,
           renderWorldCopies: false,
         });
