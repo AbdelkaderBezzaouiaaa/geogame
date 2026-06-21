@@ -220,13 +220,17 @@ export function shuffleArray<T>(array: T[]): T[] {
 }
 
 export interface Question {
-  type: 'capital' | 'country_from_capital' | 'map_guess';
+  type: 'capital' | 'country_from_capital' | 'map_guess' | 'flag';
   questionText: string;
   correctAnswer: string;
   options: string[];
   countryCode?: string;
   lat?: number;
   lng?: number;
+}
+
+export function generateFlagQuestions(count: number): Question[] {
+  return shuffleArray(COUNTRIES).slice(0, Math.min(count, COUNTRIES.length)).map((country) => ({ type: 'flag', questionText: 'Which country does this flag belong to?', correctAnswer: country.name, options: [], countryCode: country.code }));
 }
 
 export function generateCapitalQuestions(count: number): Question[] {

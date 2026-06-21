@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
-type GameMode = 'CAPITALS' | 'MIX' | 'MAP_GUESS';
+type GameMode = 'CAPITALS' | 'FLAGS' | 'MIX' | 'MAP_GUESS';
 
 interface MatchHistory {
   id: string;
@@ -29,6 +29,7 @@ interface MatchHistory {
 
 const gameModes: { mode: GameMode; icon: any; title: string; desc: string }[] = [
   { mode: 'CAPITALS', icon: Globe2, title: 'Capitals Quiz', desc: 'Name the capital of each country' },
+  { mode: 'FLAGS', icon: Flag, title: 'Flag Quiz', desc: 'Type the country shown by each flag' },
   { mode: 'MIX', icon: Swords, title: 'Mix Mode', desc: 'Mixed capital & country questions' },
   { mode: 'MAP_GUESS', icon: MapPin, title: 'Map Guess', desc: 'Identify countries on the map' },
 ];

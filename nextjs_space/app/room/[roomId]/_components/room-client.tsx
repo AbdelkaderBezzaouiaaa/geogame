@@ -9,6 +9,7 @@ import {
   ArrowLeft, Zap, Crown, MapPin, ChevronRight, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -62,6 +63,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
   const [starting, setStarting] = useState(false);
   const [answering, setAnswering] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [typedAnswer, setTypedAnswer] = useState('');
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
   const [timeLeft, setTimeLeft] = useState(15);
   const [lastQuestionIndex, setLastQuestionIndex] = useState(-1);
@@ -96,6 +98,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
     const qi = room?.currentQuestionIndex ?? -1;
     if (qi !== lastQuestionIndex && room?.status === 'PLAYING') {
       setSelectedAnswer(null);
+      setTypedAnswer('');
       setAnswerResult(null);
       setLastQuestionIndex(qi);
       // Reset timer
@@ -445,7 +448,19 @@ export default function RoomClient({ roomId }: { roomId: string }) {
           </Card>
         </motion.div>
 
+        {currentQ?.type === 'flag' && currentQ.countryCode && (
+          <div className="rounded-xl bg-muted/40 border p-8 flex justify-center">
+            <img src={`https://flagcdn.com/w640/${currentQ.countryCode.toLowerCase()}.png`} alt="Flag to identify" className="max-h-48 rounded shadow-md" />
+          </div>
+        )}
+
         {/* Answer Options */}
+        {(room.mode === 'CAPITALS' || room.mode === 'FLAGS') ? (
+          <form onSubmit={(event) => { event.preventDefault(); if (typedAnswer.trim()) submitAnswer(typedAnswer); }} className="space-y-3">
+            <Input value={typedAnswer} onChange={(event) => setTypedAnswer(event.target.value)} disabled={hasAnswered || !!selectedAnswer} placeholder={room.mode === 'FLAGS' ? 'Type the country name' : 'Type the capital city'} className="h-12 text-center text-lg" autoComplete="off" />
+            <Button type="submit" className="w-full" size="lg" disabled={hasAnswered || !!selectedAnswer || !typedAnswer.trim()}>{selectedAnswer ? 'Answer submitted' : 'Submit answer'}</Button>
+          </form>
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {currentQ?.options?.map((option: string, i: number) => {
             const isSelected = selectedAnswer === option;
@@ -480,6 +495,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
             );
           })}
         </div>
+        )}
 
         {/* Answer feedback */}
         <AnimatePresence>

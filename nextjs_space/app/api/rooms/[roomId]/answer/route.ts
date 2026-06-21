@@ -59,7 +59,8 @@ export async function POST(
       return NextResponse.json({ error: 'No current question' }, { status: 400 });
     }
 
-    const isCorrect = answer === currentQ.correctAnswer;
+    const normalize = (value: unknown) => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const isCorrect = normalize(answer) === normalize(currentQ.correctAnswer);
 
     // Check if first to answer correctly
     const otherAnswers = await prisma.answer.findMany({

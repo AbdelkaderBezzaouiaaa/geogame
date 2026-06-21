@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 import { generateRoomCode, TOTAL_QUESTIONS } from '@/lib/room-utils';
-import { generateCapitalQuestions, generateMixQuestions, generateMapQuestions } from '@/lib/countries';
+import { generateCapitalQuestions, generateFlagQuestions, generateMixQuestions, generateMapQuestions } from '@/lib/countries';
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { mode } = body ?? {};
 
-    if (!mode || !['CAPITALS', 'MIX', 'MAP_GUESS'].includes(mode)) {
+    if (!mode || !['CAPITALS', 'FLAGS', 'MIX', 'MAP_GUESS'].includes(mode)) {
       return NextResponse.json({ error: 'Invalid game mode' }, { status: 400 });
     }
 
@@ -35,6 +35,8 @@ export async function POST(req: NextRequest) {
     let questions;
     if (mode === 'CAPITALS') {
       questions = generateCapitalQuestions(TOTAL_QUESTIONS);
+    } else if (mode === 'FLAGS') {
+      questions = generateFlagQuestions(TOTAL_QUESTIONS);
     } else if (mode === 'MIX') {
       questions = generateMixQuestions(TOTAL_QUESTIONS);
     } else {
