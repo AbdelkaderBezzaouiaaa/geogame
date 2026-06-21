@@ -31,7 +31,7 @@ export default function MapDisplay({ lat, lng }: MapDisplayProps) {
               'osm-tiles': {
                 type: 'raster',
                 tiles: [
-                  'https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+                  'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
                 ],
                 tileSize: 256,
                 attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
