@@ -1,0 +1,110 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  username      String    @unique
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  hostedRooms   Room[]    @relation("HostedRooms")
+  roomPlayers   RoomPlayer[]
+  matchesAsP1   Match[]   @relation("Player1")
+  matchesAsP2   Match[]   @relation("Player2")
+  matchesWon    Match[]   @relation("Winner")
+  answers       Answer[]
+
+  @@map("users")
+}
+
+enum GameMode {
+  CAPITALS
+  MIX
+  MAP_GUESS
+}
+
+enum RoomStatus {
+  WAITING
+  PLAYING
+  FINISHED
+}
+
+model Room {
+  id        String     @id @default(cuid())
+  roomCode  String     @unique @map("room_code")
+  hostId    String     @map("host_id")
+  mode      GameMode   @default(CAPITALS)
+  status    RoomStatus @default(WAITING)
+  createdAt DateTime   @default(now()) @map("created_at")
+  
+  currentQuestionIndex Int @default(0) @map("current_question_index")
+  questions            Json? // Store generated questions as JSON
+  questionStartedAt    DateTime? @map("question_started_at")
+  totalQuestions       Int @default(10) @map("total_questions")
+  
+  host      User       @relation("HostedRooms", fields: [hostId], references: [id])
+  players   RoomPlayer[]
+  match     Match?
+
+  @@index([roomCode], type: Hash)
+  @@map("rooms")
+}
+
+model RoomPlayer {
+  id       String @id @default(cuid())
+  roomId   String @map("room_id")
+  userId   String @map("user_id")
+  score    Int    @default(0)
+  joinedAt DateTime @default(now()) @map("joined_at")
+  
+  room     Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id])
+
+  @@unique([roomId, userId])
+  @@map("room_players")
+}
+
+model Match {
+  id          String   @id @default(cuid())
+  roomId      String   @unique @map("room_id")
+  player1Id   String   @map("player1_id")
+  player2Id   String   @map("player2_id")
+  winnerId    String?  @map("winner_id")
+  player1Score Int     @default(0) @map("player1_score")
+  player2Score Int     @default(0) @map("player2_score")
+  mode        GameMode
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  room     Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  player1  User @relation("Player1", fields: [player1Id], references: [id])
+  player2  User @relation("Player2", fields: [player2Id], references: [id])
+  winner   User? @relation("Winner", fields: [winnerId], references: [id])
+
+  @@map("matches")
+}
+
+model Answer {
+  id           String   @id @default(cuid())
+  roomId       String   @map("room_id")
+  userId       String   @map("user_id")
+  questionIndex Int     @map("question_index")
+  selectedAnswer String @map("selected_answer")
+  isCorrect    Boolean  @map("is_correct")
+  answeredAt   DateTime @default(now()) @map("answered_at")
+  pointsEarned Int      @default(0) @map("points_earned")
+  
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@unique([roomId, userId, questionIndex])
+  @@map("answers")
+}
