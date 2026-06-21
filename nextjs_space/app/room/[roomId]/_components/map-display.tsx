@@ -31,7 +31,7 @@ export default function MapDisplay({ lat, lng }: MapDisplayProps) {
               'osm-tiles': {
                 type: 'raster',
                 tiles: [
-                  'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Tiled_web_map_numbering.png/330px-Tiled_web_map_numbering.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 ],
                 tileSize: 256,
                 attribution: '&copy; OpenStreetMap contributors',
@@ -48,8 +48,9 @@ export default function MapDisplay({ lat, lng }: MapDisplayProps) {
             ],
           },
           center: [lng, lat],
-          zoom: 4,
+          zoom: 4.5,
           interactive: false,
+          renderWorldCopies: false,
         });
 
         // Add marker
