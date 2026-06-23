@@ -146,7 +146,7 @@ export default function DashboardClient() {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground hidden sm:block">Welcome, <span className="text-foreground font-medium">{username}</span></span>
+            <button onClick={() => router.push(`/profile/${userId}`)} className="text-sm text-muted-foreground hidden sm:block hover:text-foreground">Welcome, <span className="text-foreground font-medium underline underline-offset-4">{username}</span></button>
             <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: '/' })}>
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
