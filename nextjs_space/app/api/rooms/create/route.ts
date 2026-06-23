@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { mode, friendId } = body ?? {};
 
-    if (!mode || !['CAPITALS', 'FLAGS', 'MIX', 'MAP_GUESS'].includes(mode)) {
+    if (!mode || !['CAPITALS', 'FLAGS', 'POPULATION', 'AREA_SORT', 'MIX', 'MAP_GUESS'].includes(mode)) {
       return NextResponse.json({ error: 'Invalid game mode' }, { status: 400 });
     }
 
