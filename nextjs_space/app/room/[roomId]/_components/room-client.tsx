@@ -65,6 +65,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
   const [answering, setAnswering] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [typedAnswer, setTypedAnswer] = useState('');
+  const [areaOrder, setAreaOrder] = useState<string[]>([]);
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
   const [timeLeft, setTimeLeft] = useState(15);
   const [lastQuestionIndex, setLastQuestionIndex] = useState(-1);
@@ -100,6 +101,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
     if (qi !== lastQuestionIndex && room?.status === 'PLAYING') {
       setSelectedAnswer(null);
       setTypedAnswer('');
+      setAreaOrder(((room.currentQuestion as any)?.options ?? []).map((item: any) => item.name));
       setAnswerResult(null);
       setLastQuestionIndex(qi);
       // Reset timer
@@ -454,11 +456,15 @@ export default function RoomClient({ roomId }: { roomId: string }) {
         )}
 
         {/* Answer Options */}
-        {(room.mode === 'CAPITALS' || room.mode === 'FLAGS') ? (
+        {(room.mode === 'CAPITALS' || room.mode === 'FLAGS' || room.mode === 'POPULATION') ? (
           <form onSubmit={(event) => { event.preventDefault(); if (typedAnswer.trim()) submitAnswer(typedAnswer); }} className="space-y-3">
-            <Input value={typedAnswer} onChange={(event) => setTypedAnswer(event.target.value)} disabled={hasAnswered || !!selectedAnswer} placeholder={room.mode === 'FLAGS' ? 'Type the country name' : 'Type the capital city'} className="h-12 text-center text-lg" autoComplete="off" />
+            {room.mode === 'POPULATION' && currentQ?.countryCode && <img src={`https://flagcdn.com/w160/${currentQ.countryCode.toLowerCase()}.png`} alt="Country flag" className="h-16 mx-auto rounded shadow" />}
+            <Input value={typedAnswer} onChange={(event) => setTypedAnswer(room.mode === 'POPULATION' ? event.target.value.replace(/\D/g, '') : event.target.value)} disabled={hasAnswered || !!selectedAnswer} placeholder={room.mode === 'POPULATION' ? 'Type population (digits only)' : room.mode === 'FLAGS' ? 'Type the country name' : 'Type the capital city'} inputMode={room.mode === 'POPULATION' ? 'numeric' : 'text'} className="h-12 text-center text-lg" autoComplete="off" />
             <Button type="submit" className="w-full" size="lg" disabled={hasAnswered || !!selectedAnswer || !typedAnswer.trim()}>{selectedAnswer ? 'Answer submitted' : 'Submit answer'}</Button>
           </form>
+        ) : (
+        room.mode === 'AREA_SORT' ? (
+          <div className="space-y-2"><p className="text-sm text-muted-foreground text-center">Drag countries from largest to smallest area, then validate.</p>{areaOrder.map((name, index) => <div key={name} draggable onDragStart={(event) => event.dataTransfer.setData('text/plain', String(index))} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { const from = Number(event.dataTransfer.getData('text/plain')); setAreaOrder((items) => { const next = [...items]; const [moved] = next.splice(from, 1); next.splice(index, 0, moved); return next; }); }} className="p-3 rounded-lg bg-card border cursor-grab">{index + 1}. {name}</div>)}<Button className="w-full" disabled={hasAnswered || !!selectedAnswer} onClick={() => submitAnswer(JSON.stringify(areaOrder))}>Validate order</Button></div>
         ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {currentQ?.options?.map((option: string, i: number) => {
@@ -494,6 +500,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
             );
           })}
         </div>
+        )
         )}
 
         {/* Answer feedback */}

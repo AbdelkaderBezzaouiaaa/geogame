@@ -60,7 +60,13 @@ export async function POST(
     }
 
     const normalize = (value: unknown) => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const isCorrect = normalize(answer) === normalize(currentQ.correctAnswer);
+    const isPopulation = currentQ.type === 'population';
+    const isAreaSort = currentQ.type === 'area_sort';
+    if (isPopulation && !/^\d+$/.test(String(answer ?? ''))) return NextResponse.json({ error: 'Enter digits only' }, { status: 400 });
+    const expectedOrder = isAreaSort ? [...(currentQ.options ?? [])].sort((a: any, b: any) => b.area - a.area).map((item: any) => item.name) : [];
+    const submittedOrder = isAreaSort ? JSON.parse(String(answer ?? '[]')) : [];
+    const areaPoints = isAreaSort ? submittedOrder.reduce((total: number, name: string, index: number) => total + (name === expectedOrder[index] ? 1 : 0), 0) : 0;
+    const isCorrect = isPopulation ? false : isAreaSort ? areaPoints > 0 : normalize(answer) === normalize(currentQ.correctAnswer);
 
     // Check if first to answer correctly
     const otherAnswers = await prisma.answer.findMany({
@@ -72,7 +78,7 @@ export async function POST(
     });
 
     const isFirstCorrect = isCorrect && (otherAnswers?.length ?? 0) === 0;
-    const pointsEarned = isCorrect ? BASE_POINTS + (isFirstCorrect ? SPEED_BONUS : 0) : 0;
+    const pointsEarned = isPopulation ? 0 : isAreaSort ? areaPoints : isCorrect ? BASE_POINTS + (isFirstCorrect ? SPEED_BONUS : 0) : 0;
 
     await prisma.answer.create({
       data: {
@@ -94,6 +100,12 @@ export async function POST(
     });
 
     const bothAnswered = (allAnswersForQ?.length ?? 0) >= (room.players?.length ?? 2);
+
+    if (bothAnswered && isPopulation) {
+      const actual = Number(currentQ.population);
+      const ranked = allAnswersForQ.map((item: any) => ({ ...item, difference: Math.abs(Number(item.selectedAnswer) - actual) })).sort((a: any, b: any) => a.difference - b.difference);
+      if (ranked[0].difference !== ranked[1].difference) await prisma.answer.update({ where: { id: ranked[0].id }, data: { isCorrect: true, pointsEarned: 1 } });
+    }
 
     if (bothAnswered) {
       const nextIndex = room.currentQuestionIndex + 1;

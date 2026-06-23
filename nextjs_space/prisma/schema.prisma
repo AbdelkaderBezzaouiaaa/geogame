@@ -54,6 +54,8 @@ model Friendship {
 enum GameMode {
   CAPITALS
   FLAGS
+  POPULATION
+  AREA_SORT
   MIX
   MAP_GUESS
 }

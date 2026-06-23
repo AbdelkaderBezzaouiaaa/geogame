@@ -6,6 +6,8 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 import { generateRoomCode, TOTAL_QUESTIONS } from '@/lib/room-utils';
 import { generateCapitalQuestions, generateFlagQuestions, generateMixQuestions, generateMapQuestions } from '@/lib/countries';
+import { getCountryStatsBatch } from '@/lib/country-stats';
+import { shuffleArray, COUNTRIES } from '@/lib/countries';
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,11 +39,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate questions
-    let questions;
+    let questions: any[];
     if (mode === 'CAPITALS') {
       questions = generateCapitalQuestions(TOTAL_QUESTIONS);
     } else if (mode === 'FLAGS') {
       questions = generateFlagQuestions(TOTAL_QUESTIONS);
+    } else if (mode === 'POPULATION' || mode === 'AREA_SORT') {
+      const selected = shuffleArray(COUNTRIES).slice(0, mode === 'POPULATION' ? 5 : 10);
+      const stats = await getCountryStatsBatch(selected.map((country) => country.name));
+      if (stats.length < (mode === 'POPULATION' ? 5 : 10)) return NextResponse.json({ error: 'Country statistics are temporarily unavailable' }, { status: 503 });
+      questions = mode === 'POPULATION'
+        ? stats.slice(0, 5).map(({ name, stats }) => ({ type: 'population', questionText: `Guess the population of ${name}`, correctAnswer: String(stats.population), options: [], population: stats.population, countryCode: COUNTRIES.find((country) => country.name === name)?.code }))
+        : [{ type: 'area_sort', questionText: 'Sort these countries from largest to smallest area', correctAnswer: '', options: stats.map(({ name, stats }) => ({ name, area: stats.area })) }];
     } else if (mode === 'MIX') {
       questions = generateMixQuestions(TOTAL_QUESTIONS);
     } else {
@@ -55,7 +64,7 @@ export async function POST(req: NextRequest) {
         mode,
         status: 'WAITING',
         questions: JSON.parse(JSON.stringify(questions)),
-        totalQuestions: TOTAL_QUESTIONS,
+        totalQuestions: mode === 'AREA_SORT' ? 1 : mode === 'POPULATION' ? 5 : TOTAL_QUESTIONS,
         players: {
           create: friendId ? [{ userId }, { userId: friendId }] : [{ userId }],
         },
