@@ -247,7 +247,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
                 </h3>
                 <div className="space-y-3">
                   {room.players?.map((p: Player) => (
-                    <div key={p?.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                    <button key={p?.id} onClick={() => router.push(`/profile/${p.id}`)} className="w-full flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/60 text-left transition-colors">
                       <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                         <span className="text-lg font-bold text-primary">
                           {(p?.username ?? '?')?.[0]?.toUpperCase()}
@@ -260,7 +260,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
                           Host
                         </Badge>
                       )}
-                    </div>
+                    </button>
                   ))}
                   {(room.players?.length ?? 0) < 2 && (
                     <div className="flex items-center gap-3 p-3 rounded-lg border-2 border-dashed border-muted">
