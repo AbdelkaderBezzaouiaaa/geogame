@@ -15,13 +15,18 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { mode } = body ?? {};
+    const { mode, friendId } = body ?? {};
 
     if (!mode || !['CAPITALS', 'FLAGS', 'MIX', 'MAP_GUESS'].includes(mode)) {
       return NextResponse.json({ error: 'Invalid game mode' }, { status: 400 });
     }
 
     const userId = (session.user as any).id;
+
+    if (friendId) {
+      const friendship = await prisma.friendship.findFirst({ where: { status: 'ACCEPTED', OR: [{ requesterId: userId, addresseeId: friendId }, { requesterId: friendId, addresseeId: userId }] } });
+      if (!friendship) return NextResponse.json({ error: 'You can only invite accepted friends' }, { status: 403 });
+    }
 
     // Generate unique room code
     let roomCode = generateRoomCode();
@@ -52,9 +57,7 @@ export async function POST(req: NextRequest) {
         questions: JSON.parse(JSON.stringify(questions)),
         totalQuestions: TOTAL_QUESTIONS,
         players: {
-          create: {
-            userId,
-          },
+          create: friendId ? [{ userId }, { userId: friendId }] : [{ userId }],
         },
       },
       include: {

@@ -22,8 +22,30 @@ model User {
   matchesAsP2   Match[]   @relation("Player2")
   matchesWon    Match[]   @relation("Winner")
   answers       Answer[]
+  sentFriendships     Friendship[] @relation("FriendRequester")
+  receivedFriendships Friendship[] @relation("FriendAddressee")
 
   @@map("users")
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+}
+
+model Friendship {
+  id          String           @id @default(cuid())
+  requesterId String           @map("requester_id")
+  addresseeId String           @map("addressee_id")
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  requester User @relation("FriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("FriendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@map("friendships")
 }
 
 enum GameMode {

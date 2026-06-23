@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   Globe2, Plus, LogIn, Trophy, Swords, MapPin, Hash,
-  LogOut, History, Crown, Minus, ChevronRight, Users, Flag
+  LogOut, History, Crown, Minus, ChevronRight, Users, Flag, UserPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,12 +43,17 @@ export default function DashboardClient() {
   const [joining, setJoining] = useState(false);
   const [history, setHistory] = useState<MatchHistory[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const [friendName, setFriendName] = useState('');
+  const [friends, setFriends] = useState<{ id: string; username: string }[]>([]);
+  const [incoming, setIncoming] = useState<{ id: string; user: { id: string; username: string } }[]>([]);
+  const [invitations, setInvitations] = useState<{ id: string; host: string }[]>([]);
 
   const userId = (session?.user as any)?.id;
   const username = session?.user?.name ?? 'Player';
 
   useEffect(() => {
     fetchHistory();
+    fetchFriends();
   }, []);
 
   const fetchHistory = async () => {
@@ -63,13 +68,17 @@ export default function DashboardClient() {
     }
   };
 
-  const createRoom = async () => {
+  const fetchFriends = async () => { const res = await fetch('/api/friends'); if (res.ok) { const data = await res.json(); setFriends(data.friends ?? []); setIncoming(data.incoming ?? []); setInvitations(data.invitations ?? []); } };
+  const addFriend = async () => { const res = await fetch('/api/friends', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: friendName }) }); const data = await res.json(); if (!res.ok) toast.error(data.error ?? 'Could not send request'); else { toast.success('Friend request sent'); setFriendName(''); } };
+  const acceptFriend = async (id: string) => { await fetch(`/api/friends/${id}`, { method: 'PATCH' }); fetchFriends(); };
+
+  const createRoom = async (friendId?: string) => {
     setCreating(true);
     try {
       const res = await fetch('/api/rooms/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: selectedMode }),
+        body: JSON.stringify({ mode: selectedMode, friendId }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -142,6 +151,16 @@ export default function DashboardClient() {
             </Button>
           </div>
         </div>
+
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Users className="w-5 h-5 text-primary" /> Friends & Direct Invites</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex gap-2"><Input placeholder="Friend username" value={friendName} onChange={(e) => setFriendName(e.target.value)} /><Button onClick={addFriend}><UserPlus className="w-4 h-4 mr-2" />Add</Button></div>
+            {incoming.map((request) => <div key={request.id} className="flex justify-between items-center text-sm"><span>{request.user.username} wants to be friends</span><Button size="sm" onClick={() => acceptFriend(request.id)}>Accept</Button></div>)}
+            {friends.length > 0 && <div className="space-y-2 pt-2 border-t">{friends.map((friend) => <div key={friend.id} className="flex justify-between items-center"><span className="font-medium">{friend.username}</span><Button size="sm" variant="secondary" onClick={() => createRoom(friend.id)}>Invite to play</Button></div>)}</div>}
+            {invitations.map((invite) => <div key={invite.id} className="flex justify-between items-center text-sm bg-primary/10 p-2 rounded"><span>{invite.host} invited you to a game</span><Button size="sm" onClick={() => router.push(`/room/${invite.id}`)}>Join</Button></div>)}
+          </CardContent>
+        </Card>
       </header>
 
       <main className="max-w-[1200px] mx-auto px-4 py-8 space-y-8">
@@ -227,7 +246,7 @@ export default function DashboardClient() {
                   ))}
                 </div>
 
-                <Button className="w-full" size="lg" onClick={createRoom} loading={creating}>
+                <Button className="w-full" size="lg" onClick={() => createRoom()} loading={creating}>
                   <Plus className="w-4 h-4 mr-2" />
                   Create Room
                 </Button>
