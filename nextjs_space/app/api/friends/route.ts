@@ -10,13 +10,13 @@ export async function GET() {
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = (session.user as any).id;
   const [relationships, invitations] = await Promise.all([
-    prisma.friendship.findMany({ where: { OR: [{ requesterId: userId }, { addresseeId: userId }] }, include: { requester: { select: { id: true, username: true } }, addressee: { select: { id: true, username: true } } }, orderBy: { updatedAt: 'desc' } }),
-    prisma.room.findMany({ where: { status: 'WAITING', players: { some: { userId } }, hostId: { not: userId } }, include: { host: { select: { username: true } }, players: true }, orderBy: { createdAt: 'desc' } }),
+    prisma.friendship.findMany({ where: { OR: [{ requesterId: userId }, { addresseeId: userId }] }, include: { requester: { select: { id: true, username: true, avatarUrl: true } }, addressee: { select: { id: true, username: true, avatarUrl: true } } }, orderBy: { updatedAt: 'desc' } }),
+    prisma.room.findMany({ where: { status: 'WAITING', players: { some: { userId } }, hostId: { not: userId } }, include: { host: { select: { username: true, avatarUrl: true } }, players: true }, orderBy: { createdAt: 'desc' } }),
   ]);
   return NextResponse.json({
     friends: relationships.filter((r) => r.status === 'ACCEPTED').map((r) => r.requesterId === userId ? r.addressee : r.requester),
     incoming: relationships.filter((r) => r.status === 'PENDING' && r.addresseeId === userId).map((r) => ({ id: r.id, user: r.requester })),
-    invitations: invitations.map((r) => ({ id: r.id, host: r.host.username, hostId: r.hostId })),
+    invitations: invitations.map((r) => ({ id: r.id, host: r.host.username, hostId: r.hostId, avatarUrl: r.host.avatarUrl })),
   });
 }
 

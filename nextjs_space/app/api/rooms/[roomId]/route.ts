@@ -19,7 +19,7 @@ export async function GET(
       where: { id: params?.roomId },
       include: {
         players: {
-          include: { user: { select: { id: true, username: true } } },
+          include: { user: { select: { id: true, username: true, avatarUrl: true } } },
         },
         match: true,
       },
@@ -82,6 +82,7 @@ export async function GET(
       players: room.players?.map((p: any) => ({
         id: p?.user?.id,
         username: p?.user?.username,
+        avatarUrl: p?.user?.avatarUrl,
         score: playerScores[p?.userId ?? ''] ?? 0,
         hasAnswered: answers?.some((a: any) => a?.userId === p?.userId) ?? false,
       })) ?? [],

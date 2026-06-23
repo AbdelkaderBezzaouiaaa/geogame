@@ -19,6 +19,7 @@ import MapDisplay from './map-display';
 interface Player {
   id: string;
   username: string;
+  avatarUrl?: string | null;
   score: number;
   hasAnswered: boolean;
 }
@@ -249,9 +250,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
                   {room.players?.map((p: Player) => (
                     <button key={p?.id} onClick={() => router.push(`/profile/${p.id}`)} className="w-full flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/60 text-left transition-colors">
                       <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                        <span className="text-lg font-bold text-primary">
-                          {(p?.username ?? '?')?.[0]?.toUpperCase()}
-                        </span>
+                        {p.avatarUrl ? <img src={p.avatarUrl} alt="" className="w-full h-full object-cover rounded-full" /> : <span className="text-lg font-bold text-primary">{(p?.username ?? '?')?.[0]?.toUpperCase()}</span>}
                       </div>
                       <span className="font-medium">{p?.username}</span>
                       {p?.id === room.hostId && (
