@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 import { generateRoomCode, TOTAL_QUESTIONS } from '@/lib/room-utils';
 import { generateCapitalQuestions, generateFlagQuestions, generateMixQuestions, generateMapQuestions } from '@/lib/countries';
-import { getCountryStatsBatch } from '@/lib/country-stats';
+import { COUNTRY_STATS, getCountryStatsBatch } from '@/lib/country-stats';
 import { shuffleArray, COUNTRIES } from '@/lib/countries';
 
 export async function POST(req: NextRequest) {
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     } else if (mode === 'FLAGS') {
       questions = generateFlagQuestions(TOTAL_QUESTIONS);
     } else if (mode === 'POPULATION' || mode === 'AREA_SORT') {
-      const selected = shuffleArray(COUNTRIES).slice(0, mode === 'POPULATION' ? 5 : 10);
+      const selected = shuffleArray(COUNTRIES.filter((country) => COUNTRY_STATS[country.name])).slice(0, mode === 'POPULATION' ? 5 : 10);
       const stats = await getCountryStatsBatch(selected.map((country) => country.name));
       if (stats.length < (mode === 'POPULATION' ? 5 : 10)) return NextResponse.json({ error: 'Country statistics are temporarily unavailable' }, { status: 503 });
       questions = mode === 'POPULATION'
