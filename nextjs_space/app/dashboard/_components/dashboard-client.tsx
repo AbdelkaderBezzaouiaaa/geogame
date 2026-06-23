@@ -54,6 +54,8 @@ export default function DashboardClient() {
   useEffect(() => {
     fetchHistory();
     fetchFriends();
+    const interval = window.setInterval(fetchFriends, 5000);
+    return () => window.clearInterval(interval);
   }, []);
 
   const fetchHistory = async () => {
