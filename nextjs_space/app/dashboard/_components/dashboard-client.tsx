@@ -46,7 +46,7 @@ export default function DashboardClient() {
   const [friendName, setFriendName] = useState('');
   const [friends, setFriends] = useState<{ id: string; username: string }[]>([]);
   const [incoming, setIncoming] = useState<{ id: string; user: { id: string; username: string } }[]>([]);
-  const [invitations, setInvitations] = useState<{ id: string; host: string }[]>([]);
+  const [invitations, setInvitations] = useState<{ id: string; host: string; hostId: string }[]>([]);
 
   const userId = (session?.user as any)?.id;
   const username = session?.user?.name ?? 'Player';
@@ -158,9 +158,9 @@ export default function DashboardClient() {
           <CardHeader><CardTitle className="flex items-center gap-2"><Users className="w-5 h-5 text-primary" /> Friends & Direct Invites</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <div className="flex gap-2"><Input placeholder="Friend username" value={friendName} onChange={(e) => setFriendName(e.target.value)} /><Button onClick={addFriend}><UserPlus className="w-4 h-4 mr-2" />Add</Button></div>
-            {incoming.map((request) => <div key={request.id} className="flex justify-between items-center text-sm"><span>{request.user.username} wants to be friends</span><Button size="sm" onClick={() => acceptFriend(request.id)}>Accept</Button></div>)}
-            {friends.length > 0 && <div className="space-y-2 pt-2 border-t">{friends.map((friend) => <div key={friend.id} className="flex justify-between items-center"><span className="font-medium">{friend.username}</span><Button size="sm" variant="secondary" onClick={() => createRoom(friend.id)}>Invite to play</Button></div>)}</div>}
-            {invitations.map((invite) => <div key={invite.id} className="flex justify-between items-center text-sm bg-primary/10 p-2 rounded"><span>{invite.host} invited you to a game</span><Button size="sm" onClick={() => router.push(`/room/${invite.id}`)}>Join</Button></div>)}
+            {incoming.map((request) => <div key={request.id} className="flex justify-between items-center text-sm"><button className="hover:underline" onClick={() => router.push(`/profile/${request.user.id}`)}>{request.user.username} wants to be friends</button><Button size="sm" onClick={() => acceptFriend(request.id)}>Accept</Button></div>)}
+            {friends.length > 0 && <div className="space-y-2 pt-2 border-t">{friends.map((friend) => <div key={friend.id} className="flex justify-between items-center"><button className="font-medium hover:underline" onClick={() => router.push(`/profile/${friend.id}`)}>{friend.username}</button><Button size="sm" variant="secondary" onClick={() => createRoom(friend.id)}>Invite to play</Button></div>)}</div>}
+            {invitations.map((invite) => <div key={invite.id} className="flex justify-between items-center text-sm bg-primary/10 p-2 rounded"><button className="hover:underline" onClick={() => router.push(`/profile/${invite.hostId}`)}>{invite.host} invited you to a game</button><Button size="sm" onClick={() => router.push(`/room/${invite.id}`)}>Join</Button></div>)}
           </CardContent>
         </Card>
       </header>
@@ -305,7 +305,7 @@ export default function DashboardClient() {
                                 {status === 'won' ? 'W' : status === 'lost' ? 'L' : 'D'}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
-                                vs {m?.player1?.id === userId ? m?.player2?.username : m?.player1?.username}
+                                vs <button className="hover:underline" onClick={() => router.push(`/profile/${m?.player1?.id === userId ? m?.player2?.id : m?.player1?.id}`)}>{m?.player1?.id === userId ? m?.player2?.username : m?.player1?.username}</button>
                               </span>
                             </div>
                             <span className="font-mono text-xs">

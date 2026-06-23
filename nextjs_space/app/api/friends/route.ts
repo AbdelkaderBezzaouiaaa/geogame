@@ -16,7 +16,7 @@ export async function GET() {
   return NextResponse.json({
     friends: relationships.filter((r) => r.status === 'ACCEPTED').map((r) => r.requesterId === userId ? r.addressee : r.requester),
     incoming: relationships.filter((r) => r.status === 'PENDING' && r.addresseeId === userId).map((r) => ({ id: r.id, user: r.requester })),
-    invitations: invitations.map((r) => ({ id: r.id, host: r.host.username })),
+    invitations: invitations.map((r) => ({ id: r.id, host: r.host.username, hostId: r.hostId })),
   });
 }
 

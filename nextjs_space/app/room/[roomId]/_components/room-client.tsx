@@ -344,7 +344,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
                         {(me?.username ?? '?')?.[0]?.toUpperCase()}
                       </span>
                     </div>
-                    <p className="font-medium text-sm">{me?.username ?? 'You'}</p>
+                    <button className="font-medium text-sm hover:underline" onClick={() => me?.id && router.push(`/profile/${me.id}`)}>{me?.username ?? 'You'}</button>
                     <p className="text-3xl font-mono font-bold text-primary mt-1">{me?.score ?? 0}</p>
                   </div>
                   <div className="text-2xl font-bold text-muted-foreground">vs</div>
@@ -354,7 +354,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
                         {(opponent?.username ?? '?')?.[0]?.toUpperCase()}
                       </span>
                     </div>
-                    <p className="font-medium text-sm">{opponent?.username ?? 'Opponent'}</p>
+                    <button className="font-medium text-sm hover:underline" onClick={() => opponent?.id && router.push(`/profile/${opponent.id}`)}>{opponent?.username ?? 'Opponent'}</button>
                     <p className="text-3xl font-mono font-bold text-destructive mt-1">{opponent?.score ?? 0}</p>
                   </div>
                 </div>
@@ -533,7 +533,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
           {room.players?.map((p: Player) => (
             <div key={p?.id} className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${p?.hasAnswered ? 'bg-green-500' : 'bg-muted animate-pulse'}`} />
-              <span className="text-muted-foreground">{p?.username}</span>
+              <button className="text-muted-foreground hover:underline" onClick={() => p?.id && router.push(`/profile/${p.id}`)}>{p?.username}</button>
               {p?.hasAnswered && <Check className="w-3 h-3 text-green-500" />}
             </div>
           ))}
