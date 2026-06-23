@@ -154,7 +154,8 @@ export default function DashboardClient() {
           </div>
         </div>
 
-        <Card>
+        <aside className="hidden lg:block fixed left-4 top-24 w-72 z-40">
+        <Card className="max-h-[calc(100vh-7rem)] overflow-y-auto">
           <CardHeader><CardTitle className="flex items-center gap-2"><Users className="w-5 h-5 text-primary" /> Friends & Direct Invites</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <div className="flex gap-2"><Input placeholder="Friend username" value={friendName} onChange={(e) => setFriendName(e.target.value)} /><Button onClick={addFriend}><UserPlus className="w-4 h-4 mr-2" />Add</Button></div>
@@ -163,9 +164,10 @@ export default function DashboardClient() {
             {invitations.map((invite) => <div key={invite.id} className="flex justify-between items-center text-sm bg-primary/10 p-2 rounded"><button className="hover:underline" onClick={() => router.push(`/profile/${invite.hostId}`)}>{invite.host} invited you to a game</button><Button size="sm" onClick={() => router.push(`/room/${invite.id}`)}>Join</Button></div>)}
           </CardContent>
         </Card>
+        </aside>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-4 py-8 space-y-8">
+      <main className="max-w-[1200px] mx-auto px-4 py-8 space-y-8 lg:pl-80">
         {/* Welcome */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
