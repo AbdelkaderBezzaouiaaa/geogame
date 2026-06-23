@@ -4,18 +4,26 @@ export type CountryStats = { population: number; area: number };
 
 export async function getCountryStats(countryName: string): Promise<CountryStats | null> {
   const token = process.env.REST_COUNTRIES_API_TOKEN;
-  if (!token) return null;
+  try {
+    const response = token
+      ? await fetch(`https://api.restcountries.com/countries/v5?q=${encodeURIComponent(countryName)}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+      : await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(countryName)}?fullText=true&fields=population,area`, { cache: 'no-store' });
+    if (!response.ok) throw new Error('Primary statistics lookup failed');
+    const data = await response.json();
+    const country = Array.isArray(data) ? data[0] : data;
+    const population = Number(country?.population);
+    const area = Number(country?.area);
+    if (Number.isFinite(population) && Number.isFinite(area)) return { population, area };
+  } catch {}
 
-  const response = await fetch(`https://api.restcountries.com/countries/v5?q=${encodeURIComponent(countryName)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
-  if (!response.ok) return null;
-  const data = await response.json();
-  const country = Array.isArray(data) ? data[0] : data;
-  const population = Number(country?.population);
-  const area = Number(country?.area);
-  return Number.isFinite(population) && Number.isFinite(area) ? { population, area } : null;
+  try {
+    const response = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(countryName)}?fullText=true&fields=population,area`, { cache: 'no-store' });
+    if (!response.ok) return null;
+    const country = (await response.json())?.[0];
+    const population = Number(country?.population);
+    const area = Number(country?.area);
+    return Number.isFinite(population) && Number.isFinite(area) ? { population, area } : null;
+  } catch { return null; }
 }
 
 export async function getCountryStatsBatch(countryNames: string[]) {
