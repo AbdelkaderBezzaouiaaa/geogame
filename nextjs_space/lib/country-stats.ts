@@ -10,7 +10,7 @@ export const COUNTRY_STATS: Record<string, CountryStats> = {
   India: { population: 1450000000, area: 3287263 }, Indonesia: { population: 282000000, area: 1904569 }, Italy: { population: 59000000, area: 301340 },
   Japan: { population: 123000000, area: 377975 }, Kazakhstan: { population: 20000000, area: 2724900 }, Mexico: { population: 131000000, area: 1964375 },
   Nigeria: { population: 229000000, area: 923768 }, Pakistan: { population: 252000000, area: 881913 }, Russia: { population: 144000000, area: 17098242 },
-  Saudi Arabia: { population: 34000000, area: 2149690 }, South Africa: { population: 64000000, area: 1221037 }, Spain: { population: 49000000, area: 505990 },
+  'Saudi Arabia': { population: 34000000, area: 2149690 }, 'South Africa': { population: 64000000, area: 1221037 }, Spain: { population: 49000000, area: 505990 },
   Sudan: { population: 50000000, area: 1886068 }, Tanzania: { population: 69000000, area: 945087 }, Thailand: { population: 72000000, area: 513120 },
   Turkey: { population: 87000000, area: 783562 }, Ukraine: { population: 38000000, area: 603628 }, 'United Kingdom': { population: 69000000, area: 243610 },
   'United States': { population: 347000000, area: 9833517 }, Vietnam: { population: 101000000, area: 331212 },
