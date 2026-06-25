@@ -32,6 +32,8 @@ interface RoomData {
   hostId: string;
   currentQuestionIndex: number;
   totalQuestions: number;
+  continent: string | null;
+  answerTime: number;
   questionStartedAt: string | null;
   currentQuestion: {
     type: string;
@@ -74,6 +76,17 @@ export default function RoomClient({ roomId }: { roomId: string }) {
 
   const userId = (session?.user as any)?.id;
   const isHost = room?.hostId === userId;
+  const modeLabel = room?.mode === 'CAPITALS'
+    ? '🏙️ Capitals Quiz'
+    : room?.mode === 'FLAGS'
+      ? '🚩 Flag Quiz'
+      : room?.mode === 'POPULATION'
+        ? '👥 Guess the Population'
+        : room?.mode === 'AREA_SORT'
+          ? '📏 Sort by Area'
+          : room?.mode === 'MIX'
+            ? '⚔️ Mix Mode'
+            : '🗺️ Map Guess';
 
   const fetchRoom = useCallback(async () => {
     try {
@@ -108,12 +121,12 @@ export default function RoomClient({ roomId }: { roomId: string }) {
       const started = room?.questionStartedAt;
       if (started) {
         const elapsed = (Date.now() - new Date(started).getTime()) / 1000;
-        setTimeLeft(Math.max(0, 15 - Math.floor(elapsed)));
+        setTimeLeft(Math.max(0, (room.answerTime ?? 15) - Math.floor(elapsed)));
       } else {
-        setTimeLeft(15);
+        setTimeLeft(room.answerTime ?? 15);
       }
     }
-  }, [room?.currentQuestionIndex, room?.status, room?.questionStartedAt, lastQuestionIndex]);
+  }, [room?.currentQuestionIndex, room?.status, room?.questionStartedAt, room?.answerTime, lastQuestionIndex]);
 
   // Timer countdown
   useEffect(() => {
@@ -238,8 +251,25 @@ export default function RoomClient({ roomId }: { roomId: string }) {
 
             {/* Mode */}
             <Badge variant="secondary" className="text-sm px-4 py-1.5">
-              {room.mode === 'CAPITALS' ? '🏙️ Capitals Quiz' : room.mode === 'MIX' ? '⚔️ Mix Mode' : '🗺️ Map Guess'}
+              {modeLabel}
             </Badge>
+
+            <Card>
+              <CardContent className="p-4 grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Rounds</p>
+                  <p className="font-mono font-bold">{room.totalQuestions}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Continent</p>
+                  <p className="font-medium text-sm">{room.continent ?? 'All'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Answer time</p>
+                  <p className="font-mono font-bold">{room.answerTime ?? 15}s</p>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Players */}
             <Card>

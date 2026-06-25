@@ -229,18 +229,18 @@ export interface Question {
   lng?: number;
 }
 
-export function generateFlagQuestions(count: number): Question[] {
-  return shuffleArray(COUNTRIES).slice(0, Math.min(count, COUNTRIES.length)).map((country) => ({ type: 'flag', questionText: 'Which country does this flag belong to?', correctAnswer: country.name, options: [], countryCode: country.code }));
+export function generateFlagQuestions(count: number, countries: Country[] = COUNTRIES): Question[] {
+  return shuffleArray(countries).slice(0, Math.min(count, countries.length)).map((country) => ({ type: 'flag', questionText: 'Which country does this flag belong to?', correctAnswer: country.name, options: [], countryCode: country.code }));
 }
 
-export function generateCapitalQuestions(count: number): Question[] {
-  const shuffled = shuffleArray(COUNTRIES);
+export function generateCapitalQuestions(count: number, countries: Country[] = COUNTRIES): Question[] {
+  const shuffled = shuffleArray(countries);
   const questions: Question[] = [];
 
   for (let i = 0; i < Math.min(count, shuffled.length); i++) {
     const country = shuffled[i];
     const wrongAnswers = shuffleArray(
-      COUNTRIES.filter((c: Country) => c.code !== country.code)
+      countries.filter((c: Country) => c.code !== country.code)
     )
       .slice(0, 3)
       .map((c: Country) => c.capital);
@@ -257,8 +257,8 @@ export function generateCapitalQuestions(count: number): Question[] {
   return questions;
 }
 
-export function generateMixQuestions(count: number): Question[] {
-  const shuffled = shuffleArray(COUNTRIES);
+export function generateMixQuestions(count: number, countries: Country[] = COUNTRIES): Question[] {
+  const shuffled = shuffleArray(countries);
   const questions: Question[] = [];
 
   for (let i = 0; i < Math.min(count, shuffled.length); i++) {
@@ -267,7 +267,7 @@ export function generateMixQuestions(count: number): Question[] {
 
     if (isCapitalQ) {
       const wrongAnswers = shuffleArray(
-        COUNTRIES.filter((c: Country) => c.code !== country.code)
+        countries.filter((c: Country) => c.code !== country.code)
       )
         .slice(0, 3)
         .map((c: Country) => c.capital);
@@ -281,7 +281,7 @@ export function generateMixQuestions(count: number): Question[] {
       });
     } else {
       const wrongAnswers = shuffleArray(
-        COUNTRIES.filter((c: Country) => c.code !== country.code)
+        countries.filter((c: Country) => c.code !== country.code)
       )
         .slice(0, 3)
         .map((c: Country) => c.name);
@@ -299,14 +299,14 @@ export function generateMixQuestions(count: number): Question[] {
   return questions;
 }
 
-export function generateMapQuestions(count: number): Question[] {
-  const shuffled = shuffleArray(COUNTRIES);
+export function generateMapQuestions(count: number, countries: Country[] = COUNTRIES): Question[] {
+  const shuffled = shuffleArray(countries);
   const questions: Question[] = [];
 
   for (let i = 0; i < Math.min(count, shuffled.length); i++) {
     const country = shuffled[i];
     const wrongAnswers = shuffleArray(
-      COUNTRIES.filter((c: Country) => c.code !== country.code)
+      countries.filter((c: Country) => c.code !== country.code)
     )
       .slice(0, 3)
       .map((c: Country) => c.name);

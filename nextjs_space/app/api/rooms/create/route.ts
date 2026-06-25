@@ -18,6 +18,13 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { mode, friendId } = body ?? {};
+    const rawRoundCount = Number(body?.roundCount ?? TOTAL_QUESTIONS);
+    const rawAnswerTime = Number(body?.answerTime ?? 15);
+    const continent = typeof body?.continent === 'string' ? body.continent.trim() : 'All';
+    const roundCount = Math.min(20, Math.max(1, Number.isFinite(rawRoundCount) ? Math.floor(rawRoundCount) : TOTAL_QUESTIONS));
+    const answerTime = Math.min(60, Math.max(5, Number.isFinite(rawAnswerTime) ? Math.floor(rawAnswerTime) : 15));
+    const allowedContinents = ['All', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
+    const selectedContinent = allowedContinents.includes(continent) ? continent : 'All';
 
     if (!mode || !['CAPITALS', 'FLAGS', 'POPULATION', 'AREA_SORT', 'MIX', 'MAP_GUESS'].includes(mode)) {
       return NextResponse.json({ error: 'Invalid game mode' }, { status: 400 });
@@ -38,23 +45,35 @@ export async function POST(req: NextRequest) {
       existing = await prisma.room.findUnique({ where: { roomCode } });
     }
 
+    const countryPool = selectedContinent === 'All'
+      ? COUNTRIES
+      : COUNTRIES.filter((country) => country.continent === selectedContinent);
+
+    if (countryPool.length < 4) {
+      return NextResponse.json({ error: 'Not enough countries for this continent' }, { status: 400 });
+    }
+
     // Generate questions
     let questions: any[];
     if (mode === 'CAPITALS') {
-      questions = generateCapitalQuestions(TOTAL_QUESTIONS);
+      questions = generateCapitalQuestions(roundCount, countryPool);
     } else if (mode === 'FLAGS') {
-      questions = generateFlagQuestions(TOTAL_QUESTIONS);
+      questions = generateFlagQuestions(roundCount, countryPool);
     } else if (mode === 'POPULATION' || mode === 'AREA_SORT') {
-      const selected = shuffleArray(COUNTRIES.filter((country) => COUNTRY_STATS[country.name])).slice(0, mode === 'POPULATION' ? 5 : 10);
+      const neededCountries = mode === 'POPULATION' ? roundCount : roundCount * 10;
+      const selected = shuffleArray(countryPool.filter((country) => COUNTRY_STATS[country.name])).slice(0, neededCountries);
       const stats = await getCountryStatsBatch(selected.map((country) => country.name));
-      if (stats.length < (mode === 'POPULATION' ? 5 : 10)) return NextResponse.json({ error: 'Country statistics are temporarily unavailable' }, { status: 503 });
+      if (stats.length < neededCountries) return NextResponse.json({ error: 'Country statistics are temporarily unavailable for this continent. Try All continents or choose fewer rounds.' }, { status: 503 });
       questions = mode === 'POPULATION'
-        ? stats.slice(0, 5).map(({ name, stats }) => ({ type: 'population', questionText: `Guess the population of ${name}`, correctAnswer: String(stats.population), options: [], population: stats.population, countryCode: COUNTRIES.find((country) => country.name === name)?.code }))
-        : [{ type: 'area_sort', questionText: 'Sort these countries from largest to smallest area', correctAnswer: '', options: stats.map(({ name, stats }) => ({ name, area: stats.area })) }];
+        ? stats.slice(0, roundCount).map(({ name, stats }) => ({ type: 'population', questionText: `Guess the population of ${name}`, correctAnswer: String(stats.population), options: [], population: stats.population, countryCode: COUNTRIES.find((country) => country.name === name)?.code }))
+        : Array.from({ length: roundCount }, (_, roundIndex) => {
+            const roundStats = stats.slice(roundIndex * 10, roundIndex * 10 + 10);
+            return { type: 'area_sort', questionText: 'Sort these countries from largest to smallest area', correctAnswer: '', options: roundStats.map(({ name, stats }) => ({ name, area: stats.area })) };
+          });
     } else if (mode === 'MIX') {
-      questions = generateMixQuestions(TOTAL_QUESTIONS);
+      questions = generateMixQuestions(roundCount, countryPool);
     } else {
-      questions = generateMapQuestions(TOTAL_QUESTIONS);
+      questions = generateMapQuestions(roundCount, countryPool);
     }
 
     const room = await prisma.room.create({
@@ -64,7 +83,9 @@ export async function POST(req: NextRequest) {
         mode,
         status: 'WAITING',
         questions: JSON.parse(JSON.stringify(questions)),
-        totalQuestions: mode === 'AREA_SORT' ? 1 : mode === 'POPULATION' ? 5 : TOTAL_QUESTIONS,
+        totalQuestions: questions.length,
+        continent: selectedContinent === 'All' ? null : selectedContinent,
+        answerTime,
         players: {
           create: friendId ? [{ userId }, { userId: friendId }] : [{ userId }],
         },
