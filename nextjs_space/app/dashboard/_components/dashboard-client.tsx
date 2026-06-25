@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
-type GameMode = 'CAPITALS' | 'FLAGS' | 'POPULATION' | 'AREA_SORT' | 'MIX' | 'MAP_GUESS';
+type GameMode = 'CAPITALS' | 'FLAGS' | 'POPULATION' | 'AREA_SORT' | 'GDP_SORT' | 'MIX' | 'MAP_GUESS';
 
 interface MatchHistory {
   id: string;
@@ -32,6 +32,7 @@ const gameModes: { mode: GameMode; icon: any; title: string; desc: string }[] = 
   { mode: 'FLAGS', icon: Flag, title: 'Flag Quiz', desc: 'Type the country shown by each flag' },
   { mode: 'POPULATION', icon: Users, title: 'Guess the Population', desc: 'Closest population guess wins each round' },
   { mode: 'AREA_SORT', icon: MapPin, title: 'Sort by Area', desc: 'Order countries from largest to smallest' },
+  { mode: 'GDP_SORT', icon: Trophy, title: 'Sort by GDP per Capita', desc: 'Order countries from richest to poorest per person' },
   { mode: 'MIX', icon: Swords, title: 'Mix Mode', desc: 'Mixed capital & country questions' },
   { mode: 'MAP_GUESS', icon: MapPin, title: 'Map Guess', desc: 'Identify countries on the map' },
 ];
@@ -284,7 +285,7 @@ export default function DashboardClient() {
                       </select>
                     </label>
                   </div>
-                  {(selectedMode === 'POPULATION' || selectedMode === 'AREA_SORT') && continent !== 'All' && (
+                  {(selectedMode === 'POPULATION' || selectedMode === 'AREA_SORT' || selectedMode === 'GDP_SORT') && continent !== 'All' && (
                     <p className="text-xs text-amber-500">Population and area data is available for fewer countries, so choose fewer rounds if this continent is small.</p>
                   )}
                 </div>

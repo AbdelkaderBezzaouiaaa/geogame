@@ -62,15 +62,20 @@ export async function POST(
 
     const isPopulation = currentQ.type === 'population';
     const isAreaSort = currentQ.type === 'area_sort';
+    const isGdpSort = currentQ.type === 'gdp_sort';
     if (isPopulation && !/^\d+$/.test(String(answer ?? ''))) return NextResponse.json({ error: 'Enter digits only' }, { status: 400 });
-    const expectedOrder = isAreaSort ? [...(currentQ.options ?? [])].sort((a: any, b: any) => b.area - a.area).map((item: any) => item.name) : [];
-    const submittedOrder = isAreaSort ? JSON.parse(String(answer ?? '[]')) : [];
-    const areaPoints = isAreaSort ? submittedOrder.reduce((total: number, name: string, index: number) => total + (name === expectedOrder[index] ? 1 : 0), 0) : 0;
+    const expectedOrder = isAreaSort
+      ? [...(currentQ.options ?? [])].sort((a: any, b: any) => b.area - a.area).map((item: any) => item.name)
+      : isGdpSort
+        ? [...(currentQ.options ?? [])].sort((a: any, b: any) => b.gdpPerCapita - a.gdpPerCapita).map((item: any) => item.name)
+        : [];
+    const submittedOrder = (isAreaSort || isGdpSort) ? JSON.parse(String(answer ?? '[]')) : [];
+    const sortPoints = (isAreaSort || isGdpSort) ? submittedOrder.reduce((total: number, name: string, index: number) => total + (name === expectedOrder[index] ? 1 : 0), 0) : 0;
     const canUseSmartChecker = ['capital', 'flag', 'country_from_capital'].includes(String(currentQ.type ?? ''));
     const isCorrect = isPopulation
       ? false
-      : isAreaSort
-        ? areaPoints > 0
+      : (isAreaSort || isGdpSort)
+        ? sortPoints > 0
         : canUseSmartChecker
           ? await isSmartCorrectAnswer({ answer: String(answer ?? ''), correctAnswer: String(currentQ.correctAnswer ?? ''), questionType: String(currentQ.type ?? '') })
           : String(answer ?? '') === String(currentQ.correctAnswer ?? '');
@@ -85,7 +90,7 @@ export async function POST(
     });
 
     const isFirstCorrect = isCorrect && (otherAnswers?.length ?? 0) === 0;
-    const pointsEarned = isPopulation ? 0 : isAreaSort ? areaPoints : isCorrect ? BASE_POINTS + (isFirstCorrect ? SPEED_BONUS : 0) : 0;
+    const pointsEarned = isPopulation ? 0 : (isAreaSort || isGdpSort) ? sortPoints : isCorrect ? BASE_POINTS + (isFirstCorrect ? SPEED_BONUS : 0) : 0;
 
     await prisma.answer.create({
       data: {

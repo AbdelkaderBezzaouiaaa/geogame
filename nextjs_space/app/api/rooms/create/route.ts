@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db';
 import { generateRoomCode, TOTAL_QUESTIONS } from '@/lib/room-utils';
 import { generateCapitalQuestions, generateFlagQuestions, generateMixQuestions, generateMapQuestions } from '@/lib/countries';
 import { COUNTRY_STATS, getCountryStatsBatch } from '@/lib/country-stats';
+import { GDP_PER_CAPITA } from '@/lib/gdp-per-capita';
 import { shuffleArray, COUNTRIES } from '@/lib/countries';
 
 export async function POST(req: NextRequest) {
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     const allowedContinents = ['All', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
     const selectedContinent = allowedContinents.includes(continent) ? continent : 'All';
 
-    if (!mode || !['CAPITALS', 'FLAGS', 'POPULATION', 'AREA_SORT', 'MIX', 'MAP_GUESS'].includes(mode)) {
+    if (!mode || !['CAPITALS', 'FLAGS', 'POPULATION', 'AREA_SORT', 'GDP_SORT', 'MIX', 'MAP_GUESS'].includes(mode)) {
       return NextResponse.json({ error: 'Invalid game mode' }, { status: 400 });
     }
 
@@ -70,6 +71,19 @@ export async function POST(req: NextRequest) {
             const roundStats = stats.slice(roundIndex * 10, roundIndex * 10 + 10);
             return { type: 'area_sort', questionText: 'Sort these countries from largest to smallest area', correctAnswer: '', options: roundStats.map(({ name, stats }) => ({ name, area: stats.area })) };
           });
+    } else if (mode === 'GDP_SORT') {
+      const neededCountries = roundCount * 10;
+      const selected = shuffleArray(countryPool.filter((country) => GDP_PER_CAPITA[country.name])).slice(0, neededCountries);
+      if (selected.length < neededCountries) return NextResponse.json({ error: 'GDP per capita data is temporarily unavailable for this continent. Try All continents or choose fewer rounds.' }, { status: 503 });
+      questions = Array.from({ length: roundCount }, (_, roundIndex) => {
+        const roundCountries = selected.slice(roundIndex * 10, roundIndex * 10 + 10);
+        return {
+          type: 'gdp_sort',
+          questionText: 'Sort these countries from highest to lowest GDP per capita',
+          correctAnswer: '',
+          options: roundCountries.map((country) => ({ name: country.name, gdpPerCapita: GDP_PER_CAPITA[country.name] })),
+        };
+      });
     } else if (mode === 'MIX') {
       questions = generateMixQuestions(roundCount, countryPool);
     } else {

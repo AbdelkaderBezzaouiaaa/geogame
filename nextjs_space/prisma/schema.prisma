@@ -56,6 +56,7 @@ enum GameMode {
   FLAGS
   POPULATION
   AREA_SORT
+  GDP_SORT
   MIX
   MAP_GUESS
 }

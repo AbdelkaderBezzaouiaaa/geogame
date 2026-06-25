@@ -82,8 +82,10 @@ export default function RoomClient({ roomId }: { roomId: string }) {
       ? '🚩 Flag Quiz'
       : room?.mode === 'POPULATION'
         ? '👥 Guess the Population'
-        : room?.mode === 'AREA_SORT'
-          ? '📏 Sort by Area'
+      : room?.mode === 'AREA_SORT'
+        ? '📏 Sort by Area'
+        : room?.mode === 'GDP_SORT'
+          ? '💰 GDP per Capita Sort'
           : room?.mode === 'MIX'
             ? '⚔️ Mix Mode'
             : '🗺️ Map Guess';
@@ -493,8 +495,8 @@ export default function RoomClient({ roomId }: { roomId: string }) {
             <Button type="submit" className="w-full" size="lg" disabled={hasAnswered || !!selectedAnswer || !typedAnswer.trim()}>{selectedAnswer ? 'Answer submitted' : 'Submit answer'}</Button>
           </form>
         ) : (
-        room.mode === 'AREA_SORT' ? (
-          <div className="space-y-2"><p className="text-sm text-muted-foreground text-center">Drag countries from largest to smallest area, then validate.</p>{areaOrder.map((name, index) => <div key={name} draggable onDragStart={(event) => event.dataTransfer.setData('text/plain', String(index))} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { const from = Number(event.dataTransfer.getData('text/plain')); setAreaOrder((items) => { const next = [...items]; const [moved] = next.splice(from, 1); next.splice(index, 0, moved); return next; }); }} className="p-3 rounded-lg bg-card border cursor-grab">{index + 1}. {name}</div>)}<Button className="w-full" disabled={hasAnswered || !!selectedAnswer} onClick={() => submitAnswer(JSON.stringify(areaOrder))}>Validate order</Button></div>
+        (room.mode === 'AREA_SORT' || room.mode === 'GDP_SORT') ? (
+          <div className="space-y-2"><p className="text-sm text-muted-foreground text-center">Drag countries from {room.mode === 'GDP_SORT' ? 'highest to lowest GDP per capita' : 'largest to smallest area'}, then validate.</p>{areaOrder.map((name, index) => <div key={name} draggable onDragStart={(event) => event.dataTransfer.setData('text/plain', String(index))} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { const from = Number(event.dataTransfer.getData('text/plain')); setAreaOrder((items) => { const next = [...items]; const [moved] = next.splice(from, 1); next.splice(index, 0, moved); return next; }); }} className="p-3 rounded-lg bg-card border cursor-grab">{index + 1}. {name}</div>)}<Button className="w-full" disabled={hasAnswered || !!selectedAnswer} onClick={() => submitAnswer(JSON.stringify(areaOrder))}>Validate order</Button></div>
         ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {currentQ?.options?.map((option: string, i: number) => {
