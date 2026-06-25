@@ -566,6 +566,15 @@ export default function RoomClient({ roomId }: { roomId: string }) {
           )}
         </AnimatePresence>
 
+        {!answerResult?.isCorrect && answerResult?.correctAnswer && (
+          <Card className="border-destructive/30 bg-destructive/10">
+            <CardContent className="p-4 text-center">
+              <p className="text-xs uppercase tracking-wide text-destructive font-bold mb-1">Correct answer</p>
+              <p className="text-lg font-display font-bold break-words">{answerResult.correctAnswer}</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Waiting for opponent */}
         {hasAnswered && !answerResult?.correctAnswer && (
           <div className="text-center text-muted-foreground text-sm flex items-center justify-center gap-2">

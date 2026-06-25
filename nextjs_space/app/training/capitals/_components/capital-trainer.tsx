@@ -132,7 +132,13 @@ export default function CapitalTrainer() {
               <p className="flex items-center justify-center gap-2 text-sm font-medium text-emerald-500"><CheckCircle2 className="w-4 h-4" /> Correct! Next capital coming up…</p>
             )}
             {answerState === 'incorrect' && (
-              <p className="flex items-center justify-center gap-2 text-sm font-medium text-destructive"><XCircle className="w-4 h-4" /> Not quite — try again.</p>
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-center">
+                <p className="flex items-center justify-center gap-2 text-sm font-medium text-destructive"><XCircle className="w-4 h-4" /> Not quite.</p>
+                <p className="mt-1 text-sm">
+                  <span className="font-semibold">Correct answer: </span>
+                  {country.capital}
+                </p>
+              </div>
             )}
             <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
               <Button type="button" variant="outline" className="sm:w-40" onClick={nextQuestion}><SkipForward className="w-4 h-4 mr-2" /> Skip</Button>
