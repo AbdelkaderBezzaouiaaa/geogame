@@ -27,6 +27,7 @@ export default function CapitalTrainer() {
   const [country, setCountry] = useState<Country>(() => chooseCountry());
   const [answer, setAnswer] = useState('');
   const [answerState, setAnswerState] = useState<AnswerState>('idle');
+  const [checking, setChecking] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
   const [streak, setStreak] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -39,11 +40,28 @@ export default function CapitalTrainer() {
     setAnswerState('idle');
   };
 
-  const submitAnswer = (event: FormEvent<HTMLFormElement>) => {
+  const submitAnswer = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!answer.trim() || answerState === 'correct') return;
+    if (!answer.trim() || answerState === 'correct' || checking) return;
 
-    if (normalizeAnswer(answer) === normalizeAnswer(country.capital)) {
+    setChecking(true);
+    let smartCorrect = normalizeAnswer(answer) === normalizeAnswer(country.capital);
+    if (!smartCorrect) {
+      try {
+        const res = await fetch('/api/answer-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answer, correctAnswer: country.capital, questionType: 'capital' }),
+        });
+        const data = await res.json();
+        smartCorrect = Boolean(data?.isCorrect);
+      } catch {
+        smartCorrect = false;
+      }
+    }
+    setChecking(false);
+
+    if (smartCorrect) {
       setAnswerState('correct');
       setCorrectCount((count) => count + 1);
       setStreak((count) => count + 1);
@@ -118,7 +136,7 @@ export default function CapitalTrainer() {
             )}
             <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
               <Button type="button" variant="outline" className="sm:w-40" onClick={nextQuestion}><SkipForward className="w-4 h-4 mr-2" /> Skip</Button>
-              <Button type="submit" size="lg" className="flex-1" disabled={!answer.trim() || answerState === 'correct'}>Check Answer</Button>
+              <Button type="submit" size="lg" className="flex-1" disabled={!answer.trim() || answerState === 'correct' || checking}>{checking ? 'Checking...' : 'Check Answer'}</Button>
             </div>
           </form>
         </section>

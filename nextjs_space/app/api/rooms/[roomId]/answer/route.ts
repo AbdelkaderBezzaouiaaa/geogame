@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 import { BASE_POINTS, SPEED_BONUS, QUESTION_TIME_LIMIT } from '@/lib/room-utils';
+import { isSmartCorrectAnswer } from '@/lib/smart-answer';
 
 export async function POST(
   req: NextRequest,
@@ -59,14 +60,20 @@ export async function POST(
       return NextResponse.json({ error: 'No current question' }, { status: 400 });
     }
 
-    const normalize = (value: unknown) => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const isPopulation = currentQ.type === 'population';
     const isAreaSort = currentQ.type === 'area_sort';
     if (isPopulation && !/^\d+$/.test(String(answer ?? ''))) return NextResponse.json({ error: 'Enter digits only' }, { status: 400 });
     const expectedOrder = isAreaSort ? [...(currentQ.options ?? [])].sort((a: any, b: any) => b.area - a.area).map((item: any) => item.name) : [];
     const submittedOrder = isAreaSort ? JSON.parse(String(answer ?? '[]')) : [];
     const areaPoints = isAreaSort ? submittedOrder.reduce((total: number, name: string, index: number) => total + (name === expectedOrder[index] ? 1 : 0), 0) : 0;
-    const isCorrect = isPopulation ? false : isAreaSort ? areaPoints > 0 : normalize(answer) === normalize(currentQ.correctAnswer);
+    const canUseSmartChecker = ['capital', 'flag', 'country_from_capital'].includes(String(currentQ.type ?? ''));
+    const isCorrect = isPopulation
+      ? false
+      : isAreaSort
+        ? areaPoints > 0
+        : canUseSmartChecker
+          ? await isSmartCorrectAnswer({ answer: String(answer ?? ''), correctAnswer: String(currentQ.correctAnswer ?? ''), questionType: String(currentQ.type ?? '') })
+          : String(answer ?? '') === String(currentQ.correctAnswer ?? '');
 
     // Check if first to answer correctly
     const otherAnswers = await prisma.answer.findMany({
