@@ -487,6 +487,12 @@ export default function RoomClient({ roomId }: { roomId: string }) {
           </div>
         )}
 
+        {currentQ?.type === 'capital' && currentQ.countryCode && (
+          <div className="rounded-xl bg-muted/40 border p-5 flex justify-center">
+            <img src={`https://flagcdn.com/w160/${currentQ.countryCode.toLowerCase()}.png`} alt="Country flag" className="h-16 rounded shadow-sm" />
+          </div>
+        )}
+
         {/* Answer Options */}
         {(room.mode === 'CAPITALS' || room.mode === 'FLAGS' || room.mode === 'POPULATION') ? (
           <form onSubmit={(event) => { event.preventDefault(); if (typedAnswer.trim()) submitAnswer(typedAnswer); }} className="space-y-3">

@@ -247,7 +247,7 @@ export function generateCapitalQuestions(count: number, countries: Country[] = C
 
     questions.push({
       type: 'capital',
-      questionText: `What is the capital of ${country.flag} ${country.name}?`,
+      questionText: `What is the capital of ${country.name}?`,
       correctAnswer: country.capital,
       options: shuffleArray([country.capital, ...wrongAnswers]),
       countryCode: country.code,
@@ -274,7 +274,7 @@ export function generateMixQuestions(count: number, countries: Country[] = COUNT
 
       questions.push({
         type: 'capital',
-        questionText: `What is the capital of ${country.flag} ${country.name}?`,
+        questionText: `What is the capital of ${country.name}?`,
         correctAnswer: country.capital,
         options: shuffleArray([country.capital, ...wrongAnswers]),
         countryCode: country.code,
