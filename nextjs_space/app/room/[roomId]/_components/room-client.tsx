@@ -552,7 +552,15 @@ export default function RoomClient({ roomId }: { roomId: string }) {
                   <span className="font-bold">Correct! +{answerResult.pointsEarned} points</span>
                 </div>
               ) : (
-                <span className="font-medium">Wrong answer</span>
+                <div className="space-y-1">
+                  <p className="font-medium">{answerResult.pointsEarned > 0 ? `Not perfect — ${answerResult.pointsEarned} point${answerResult.pointsEarned === 1 ? '' : 's'} earned` : 'Wrong answer'}</p>
+                  {answerResult.correctAnswer && (
+                    <p className="text-sm">
+                      <span className="font-semibold">Right answer: </span>
+                      {answerResult.correctAnswer}
+                    </p>
+                  )}
+                </div>
               )}
             </motion.div>
           )}

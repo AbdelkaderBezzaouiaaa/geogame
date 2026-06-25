@@ -71,11 +71,12 @@ export async function POST(
         : [];
     const submittedOrder = (isAreaSort || isGdpSort) ? JSON.parse(String(answer ?? '[]')) : [];
     const sortPoints = (isAreaSort || isGdpSort) ? submittedOrder.reduce((total: number, name: string, index: number) => total + (name === expectedOrder[index] ? 1 : 0), 0) : 0;
+    const isFullSortCorrect = (isAreaSort || isGdpSort) && sortPoints === expectedOrder.length;
     const canUseSmartChecker = ['capital', 'flag', 'country_from_capital'].includes(String(currentQ.type ?? ''));
     const isCorrect = isPopulation
       ? false
       : (isAreaSort || isGdpSort)
-        ? sortPoints > 0
+        ? isFullSortCorrect
         : canUseSmartChecker
           ? await isSmartCorrectAnswer({ answer: String(answer ?? ''), correctAnswer: String(currentQ.correctAnswer ?? ''), questionType: String(currentQ.type ?? '') })
           : String(answer ?? '') === String(currentQ.correctAnswer ?? '');
@@ -168,10 +169,16 @@ export async function POST(
       }
     }
 
+    const educationalAnswer = (isAreaSort || isGdpSort)
+      ? expectedOrder.join(' → ')
+      : isPopulation
+        ? Number(currentQ.population).toLocaleString('en-US')
+        : String(currentQ.correctAnswer ?? '');
+
     return NextResponse.json({
       isCorrect,
       pointsEarned,
-      correctAnswer: bothAnswered ? currentQ.correctAnswer : undefined,
+      correctAnswer: isCorrect ? undefined : educationalAnswer,
     });
   } catch (error: any) {
     console.error('Answer error:', error);
