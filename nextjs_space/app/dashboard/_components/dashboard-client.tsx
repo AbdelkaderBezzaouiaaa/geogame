@@ -388,7 +388,7 @@ export default function DashboardClient() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="grid md:grid-cols-2 gap-6"
+          className="grid md:grid-cols-3 gap-6"
         >
           <Card className="overflow-hidden border-primary/25 bg-gradient-to-br from-primary/10 via-card to-card">
             <CardContent className="p-6 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -419,6 +419,23 @@ export default function DashboardClient() {
                 </div>
               </div>
               <Button size="lg" onClick={() => router.push('/training/capitals')}>
+                Start Training
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden border-primary/25 bg-gradient-to-br from-primary/10 via-card to-card">
+            <CardContent className="p-6 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 shrink-0 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
+                  <Globe2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-display font-bold">Geodle Trainer</h2>
+                  <p className="text-sm text-muted-foreground">Practice the clue-based country guessing mode with unlimited games.</p>
+                </div>
+              </div>
+              <Button size="lg" onClick={() => router.push('/training/geodle')}>
                 Start Training
                 <ChevronRight className="w-4 h-4" />
               </Button>
