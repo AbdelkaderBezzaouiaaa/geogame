@@ -27,14 +27,14 @@ interface MatchHistory {
   completedAt: string | null;
 }
 
-const gameModes: { mode: GameMode; icon: any; title: string; desc: string }[] = [
-  { mode: 'CAPITALS', icon: Globe2, title: 'Capitals Quiz', desc: 'Name the capital of each country' },
-  { mode: 'FLAGS', icon: Flag, title: 'Flag Quiz', desc: 'Type the country shown by each flag' },
-  { mode: 'POPULATION', icon: Users, title: 'Guess the Population', desc: 'Closest population guess wins each round' },
-  { mode: 'AREA_SORT', icon: MapPin, title: 'Sort by Area', desc: 'Order countries from largest to smallest' },
-  { mode: 'GDP_SORT', icon: Trophy, title: 'Sort by GDP per Capita', desc: 'Order countries from richest to poorest per person' },
-  { mode: 'MIX', icon: Swords, title: 'Mix Mode', desc: 'Mixed capital & country questions' },
-  { mode: 'MAP_GUESS', icon: MapPin, title: 'Map Guess', desc: 'Identify countries on the map' },
+const gameModes: { mode: GameMode; icon: any; title: string; desc: string; difficulty: string }[] = [
+  { mode: 'CAPITALS', icon: Globe2, title: 'Capitals Quiz', desc: 'Name the capital of each country', difficulty: 'Medium' },
+  { mode: 'FLAGS', icon: Flag, title: 'Flag Quiz', desc: 'Type the country shown by each flag', difficulty: 'Medium' },
+  { mode: 'MAP_GUESS', icon: MapPin, title: 'Map Guess', desc: 'Identify countries on the map', difficulty: 'Hard' },
+  { mode: 'POPULATION', icon: Users, title: 'Guess the Population', desc: 'Closest population guess wins each round', difficulty: 'Hard' },
+  { mode: 'AREA_SORT', icon: MapPin, title: 'Sort by Area', desc: 'Order countries from largest to smallest', difficulty: 'Expert' },
+  { mode: 'GDP_SORT', icon: Trophy, title: 'Sort by GDP per Capita', desc: 'Order countries from richest to poorest per person', difficulty: 'Expert' },
+  { mode: 'MIX', icon: Swords, title: 'Mix Mode', desc: 'All modes mixed into one battle', difficulty: 'Extreme' },
 ];
 
 const continents = ['All', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
@@ -237,7 +237,10 @@ export default function DashboardClient() {
                   {gameModes.map((gm) => (
                     <button
                       key={gm.mode}
-                      onClick={() => setSelectedMode(gm.mode)}
+                      onClick={() => {
+                        setSelectedMode(gm.mode);
+                        if (gm.mode === 'MIX' && roundCount < 6) setRoundCount(10);
+                      }}
                       className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${
                         selectedMode === gm.mode
                           ? 'bg-primary/10 ring-2 ring-primary'
@@ -250,7 +253,10 @@ export default function DashboardClient() {
                         <gm.icon className="w-4 h-4" />
                       </div>
                       <div className="text-left">
-                        <p className="text-sm font-medium">{gm.title}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">{gm.title}</p>
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{gm.difficulty}</Badge>
+                        </div>
                         <p className="text-xs text-muted-foreground">{gm.desc}</p>
                       </div>
                       {selectedMode === gm.mode && (
@@ -286,7 +292,10 @@ export default function DashboardClient() {
                     </label>
                   </div>
                   {(selectedMode === 'POPULATION' || selectedMode === 'AREA_SORT' || selectedMode === 'GDP_SORT') && continent !== 'All' && (
-                    <p className="text-xs text-amber-500">Population and area data is available for fewer countries, so choose fewer rounds if this continent is small.</p>
+                    <p className="text-xs text-amber-500">Some advanced data is available for fewer countries, so choose fewer rounds if this continent is small.</p>
+                  )}
+                  {selectedMode === 'MIX' && (
+                    <p className="text-xs text-primary">Mix Mode includes Capitals, Flags, Map Guess, Population, Area Sort, and GDP Sort.</p>
                   )}
                 </div>
 

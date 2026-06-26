@@ -411,6 +411,9 @@ export default function RoomClient({ roomId }: { roomId: string }) {
   const hasAnswered = me?.hasAnswered ?? false;
   const questionNum = (room.currentQuestionIndex ?? 0) + 1;
   const progressPercent = ((room.currentQuestionIndex ?? 0) / (room.totalQuestions ?? 10)) * 100;
+  const isPopulationQuestion = currentQ?.type === 'population';
+  const isTypedQuestion = currentQ?.type === 'capital' || currentQ?.type === 'flag' || isPopulationQuestion;
+  const isSortQuestion = currentQ?.type === 'area_sort' || currentQ?.type === 'gdp_sort';
 
   return (
     <div className="min-h-screen bg-background">
@@ -494,15 +497,15 @@ export default function RoomClient({ roomId }: { roomId: string }) {
         )}
 
         {/* Answer Options */}
-        {(room.mode === 'CAPITALS' || room.mode === 'FLAGS' || room.mode === 'POPULATION') ? (
+        {isTypedQuestion ? (
           <form onSubmit={(event) => { event.preventDefault(); if (typedAnswer.trim()) submitAnswer(typedAnswer); }} className="space-y-3">
-            {room.mode === 'POPULATION' && currentQ?.countryCode && <img src={`https://flagcdn.com/w160/${currentQ.countryCode.toLowerCase()}.png`} alt="Country flag" className="h-16 mx-auto rounded shadow" />}
-            <Input value={typedAnswer} onChange={(event) => setTypedAnswer(room.mode === 'POPULATION' ? event.target.value.replace(/\D/g, '') : event.target.value)} disabled={hasAnswered || !!selectedAnswer} placeholder={room.mode === 'POPULATION' ? 'Type population (digits only)' : room.mode === 'FLAGS' ? 'Type the country name' : 'Type the capital city'} inputMode={room.mode === 'POPULATION' ? 'numeric' : 'text'} className="h-12 text-center text-lg" autoComplete="off" />
+            {isPopulationQuestion && currentQ?.countryCode && <img src={`https://flagcdn.com/w160/${currentQ.countryCode.toLowerCase()}.png`} alt="Country flag" className="h-16 mx-auto rounded shadow" />}
+            <Input value={typedAnswer} onChange={(event) => setTypedAnswer(isPopulationQuestion ? event.target.value.replace(/\D/g, '') : event.target.value)} disabled={hasAnswered || !!selectedAnswer} placeholder={isPopulationQuestion ? 'Type population (digits only)' : currentQ?.type === 'flag' ? 'Type the country name' : 'Type the capital city'} inputMode={isPopulationQuestion ? 'numeric' : 'text'} className="h-12 text-center text-lg" autoComplete="off" />
             <Button type="submit" className="w-full" size="lg" disabled={hasAnswered || !!selectedAnswer || !typedAnswer.trim()}>{selectedAnswer ? 'Answer submitted' : 'Submit answer'}</Button>
           </form>
         ) : (
-        (room.mode === 'AREA_SORT' || room.mode === 'GDP_SORT') ? (
-          <div className="space-y-2"><p className="text-sm text-muted-foreground text-center">Drag countries from {room.mode === 'GDP_SORT' ? 'highest to lowest GDP per capita' : 'largest to smallest area'}, then validate.</p>{areaOrder.map((name, index) => <div key={name} draggable onDragStart={(event) => event.dataTransfer.setData('text/plain', String(index))} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { const from = Number(event.dataTransfer.getData('text/plain')); setAreaOrder((items) => { const next = [...items]; const [moved] = next.splice(from, 1); next.splice(index, 0, moved); return next; }); }} className="p-3 rounded-lg bg-card border cursor-grab">{index + 1}. {name}</div>)}<Button className="w-full" disabled={hasAnswered || !!selectedAnswer} onClick={() => submitAnswer(JSON.stringify(areaOrder))}>Validate order</Button></div>
+        isSortQuestion ? (
+          <div className="space-y-2"><p className="text-sm text-muted-foreground text-center">Drag countries from {currentQ?.type === 'gdp_sort' ? 'highest to lowest GDP per capita' : 'largest to smallest area'}, then validate.</p>{areaOrder.map((name, index) => <div key={name} draggable onDragStart={(event) => event.dataTransfer.setData('text/plain', String(index))} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { const from = Number(event.dataTransfer.getData('text/plain')); setAreaOrder((items) => { const next = [...items]; const [moved] = next.splice(from, 1); next.splice(index, 0, moved); return next; }); }} className="p-3 rounded-lg bg-card border cursor-grab">{index + 1}. {name}</div>)}<Button className="w-full" disabled={hasAnswered || !!selectedAnswer} onClick={() => submitAnswer(JSON.stringify(areaOrder))}>Validate order</Button></div>
         ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {currentQ?.options?.map((option: string, i: number) => {

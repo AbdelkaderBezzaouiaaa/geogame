@@ -220,7 +220,7 @@ export function shuffleArray<T>(array: T[]): T[] {
 }
 
 export interface Question {
-  type: 'capital' | 'country_from_capital' | 'map_guess' | 'flag';
+  type: 'capital' | 'country_from_capital' | 'map_guess' | 'flag' | 'population' | 'area_sort' | 'gdp_sort';
   questionText: string;
   correctAnswer: string;
   options: string[];

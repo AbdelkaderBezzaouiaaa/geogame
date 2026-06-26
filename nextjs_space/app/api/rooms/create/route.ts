@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 import { generateRoomCode, TOTAL_QUESTIONS } from '@/lib/room-utils';
-import { generateCapitalQuestions, generateFlagQuestions, generateMixQuestions, generateMapQuestions } from '@/lib/countries';
+import { generateCapitalQuestions, generateFlagQuestions, generateMapQuestions } from '@/lib/countries';
 import { COUNTRY_STATS, getCountryStatsBatch } from '@/lib/country-stats';
 import { GDP_PER_CAPITA } from '@/lib/gdp-per-capita';
 import { shuffleArray, COUNTRIES } from '@/lib/countries';
@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     const rawAnswerTime = Number(body?.answerTime ?? 15);
     const continent = typeof body?.continent === 'string' ? body.continent.trim() : 'All';
     const roundCount = Math.min(20, Math.max(1, Number.isFinite(rawRoundCount) ? Math.floor(rawRoundCount) : TOTAL_QUESTIONS));
+    const effectiveRoundCount = mode === 'MIX' ? Math.max(6, roundCount) : roundCount;
     const answerTime = Math.min(60, Math.max(5, Number.isFinite(rawAnswerTime) ? Math.floor(rawAnswerTime) : 15));
     const allowedContinents = ['All', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
     const selectedContinent = allowedContinents.includes(continent) ? continent : 'All';
@@ -57,25 +58,25 @@ export async function POST(req: NextRequest) {
     // Generate questions
     let questions: any[];
     if (mode === 'CAPITALS') {
-      questions = generateCapitalQuestions(roundCount, countryPool);
+      questions = generateCapitalQuestions(effectiveRoundCount, countryPool);
     } else if (mode === 'FLAGS') {
-      questions = generateFlagQuestions(roundCount, countryPool);
+      questions = generateFlagQuestions(effectiveRoundCount, countryPool);
     } else if (mode === 'POPULATION' || mode === 'AREA_SORT') {
-      const neededCountries = mode === 'POPULATION' ? roundCount : roundCount * 10;
+      const neededCountries = mode === 'POPULATION' ? effectiveRoundCount : effectiveRoundCount * 10;
       const selected = shuffleArray(countryPool.filter((country) => COUNTRY_STATS[country.name])).slice(0, neededCountries);
       const stats = await getCountryStatsBatch(selected.map((country) => country.name));
       if (stats.length < neededCountries) return NextResponse.json({ error: 'Country statistics are temporarily unavailable for this continent. Try All continents or choose fewer rounds.' }, { status: 503 });
       questions = mode === 'POPULATION'
-        ? stats.slice(0, roundCount).map(({ name, stats }) => ({ type: 'population', questionText: `Guess the population of ${name}`, correctAnswer: String(stats.population), options: [], population: stats.population, countryCode: COUNTRIES.find((country) => country.name === name)?.code }))
-        : Array.from({ length: roundCount }, (_, roundIndex) => {
+        ? stats.slice(0, effectiveRoundCount).map(({ name, stats }) => ({ type: 'population', questionText: `Guess the population of ${name}`, correctAnswer: String(stats.population), options: [], population: stats.population, countryCode: COUNTRIES.find((country) => country.name === name)?.code }))
+        : Array.from({ length: effectiveRoundCount }, (_, roundIndex) => {
             const roundStats = stats.slice(roundIndex * 10, roundIndex * 10 + 10);
             return { type: 'area_sort', questionText: 'Sort these countries from largest to smallest area', correctAnswer: '', options: roundStats.map(({ name, stats }) => ({ name, area: stats.area })) };
           });
     } else if (mode === 'GDP_SORT') {
-      const neededCountries = roundCount * 10;
+      const neededCountries = effectiveRoundCount * 10;
       const selected = shuffleArray(countryPool.filter((country) => GDP_PER_CAPITA[country.name])).slice(0, neededCountries);
       if (selected.length < neededCountries) return NextResponse.json({ error: 'GDP per capita data is temporarily unavailable for this continent. Try All continents or choose fewer rounds.' }, { status: 503 });
-      questions = Array.from({ length: roundCount }, (_, roundIndex) => {
+      questions = Array.from({ length: effectiveRoundCount }, (_, roundIndex) => {
         const roundCountries = selected.slice(roundIndex * 10, roundIndex * 10 + 10);
         return {
           type: 'gdp_sort',
@@ -85,9 +86,39 @@ export async function POST(req: NextRequest) {
         };
       });
     } else if (mode === 'MIX') {
-      questions = generateMixQuestions(roundCount, countryPool);
+      const statCountries = countryPool.filter((country) => COUNTRY_STATS[country.name]);
+      const gdpCountries = countryPool.filter((country) => GDP_PER_CAPITA[country.name]);
+      if (statCountries.length < 10 || gdpCountries.length < 10) {
+        return NextResponse.json({ error: 'Mix Mode needs enough population, area, and GDP data. Try All continents or choose another mode.' }, { status: 503 });
+      }
+
+      const mixModes = shuffleArray(['CAPITALS', 'FLAGS', 'MAP_GUESS', 'POPULATION', 'AREA_SORT', 'GDP_SORT']);
+      questions = [];
+      for (let i = 0; i < effectiveRoundCount; i++) {
+        const nextMode = mixModes[i % mixModes.length];
+        if (nextMode === 'CAPITALS') {
+          questions.push(generateCapitalQuestions(1, countryPool)[0]);
+        } else if (nextMode === 'FLAGS') {
+          questions.push(generateFlagQuestions(1, countryPool)[0]);
+        } else if (nextMode === 'MAP_GUESS') {
+          questions.push(generateMapQuestions(1, countryPool)[0]);
+        } else if (nextMode === 'POPULATION') {
+          const country = shuffleArray(statCountries).slice(0, 1)[0];
+          const stats = (await getCountryStatsBatch([country.name]))[0]?.stats;
+          if (!stats) return NextResponse.json({ error: 'Country statistics are temporarily unavailable' }, { status: 503 });
+          questions.push({ type: 'population', questionText: `Guess the population of ${country.name}`, correctAnswer: String(stats.population), options: [], population: stats.population, countryCode: country.code });
+        } else if (nextMode === 'AREA_SORT') {
+          const selected = shuffleArray(statCountries).slice(0, 10);
+          const stats = await getCountryStatsBatch(selected.map((country) => country.name));
+          if (stats.length < 10) return NextResponse.json({ error: 'Country statistics are temporarily unavailable' }, { status: 503 });
+          questions.push({ type: 'area_sort', questionText: 'Sort these countries from largest to smallest area', correctAnswer: '', options: stats.map(({ name, stats }) => ({ name, area: stats.area })) });
+        } else {
+          const selected = shuffleArray(gdpCountries).slice(0, 10);
+          questions.push({ type: 'gdp_sort', questionText: 'Sort these countries from highest to lowest GDP per capita', correctAnswer: '', options: selected.map((country) => ({ name: country.name, gdpPerCapita: GDP_PER_CAPITA[country.name] })) });
+        }
+      }
     } else {
-      questions = generateMapQuestions(roundCount, countryPool);
+      questions = generateMapQuestions(effectiveRoundCount, countryPool);
     }
 
     const room = await prisma.room.create({
