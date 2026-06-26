@@ -33,6 +33,7 @@ interface RoomData {
   currentQuestionIndex: number;
   totalQuestions: number;
   continent: string | null;
+  difficulty: string | null;
   answerTime: number;
   questionStartedAt: string | null;
   currentQuestion: {
@@ -257,7 +258,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
             </Badge>
 
             <Card>
-              <CardContent className="p-4 grid grid-cols-3 gap-3 text-center">
+              <CardContent className="p-4 grid grid-cols-4 gap-3 text-center">
                 <div>
                   <p className="text-xs text-muted-foreground">Rounds</p>
                   <p className="font-mono font-bold">{room.totalQuestions}</p>
@@ -265,6 +266,10 @@ export default function RoomClient({ roomId }: { roomId: string }) {
                 <div>
                   <p className="text-xs text-muted-foreground">Continent</p>
                   <p className="font-medium text-sm">{room.continent ?? 'All'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Difficulty</p>
+                  <p className="font-medium text-sm">{room.difficulty ?? 'All'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Answer time</p>

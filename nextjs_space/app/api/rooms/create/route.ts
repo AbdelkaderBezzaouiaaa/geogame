@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 import { generateRoomCode, TOTAL_QUESTIONS } from '@/lib/room-utils';
-import { generateCapitalQuestions, generateFlagQuestions, generateMapQuestions } from '@/lib/countries';
+import { filterCountriesByDifficulty, generateCapitalQuestions, generateFlagQuestions, generateMapQuestions } from '@/lib/countries';
 import { COUNTRY_STATS, getCountryStatsBatch } from '@/lib/country-stats';
 import { GDP_PER_CAPITA } from '@/lib/gdp-per-capita';
 import { shuffleArray, COUNTRIES } from '@/lib/countries';
@@ -22,11 +22,14 @@ export async function POST(req: NextRequest) {
     const rawRoundCount = Number(body?.roundCount ?? TOTAL_QUESTIONS);
     const rawAnswerTime = Number(body?.answerTime ?? 15);
     const continent = typeof body?.continent === 'string' ? body.continent.trim() : 'All';
+    const difficulty = typeof body?.difficulty === 'string' ? body.difficulty.trim() : 'All';
     const roundCount = Math.min(20, Math.max(1, Number.isFinite(rawRoundCount) ? Math.floor(rawRoundCount) : TOTAL_QUESTIONS));
     const effectiveRoundCount = mode === 'MIX' ? Math.max(6, roundCount) : roundCount;
     const answerTime = Math.min(60, Math.max(5, Number.isFinite(rawAnswerTime) ? Math.floor(rawAnswerTime) : 15));
     const allowedContinents = ['All', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
     const selectedContinent = allowedContinents.includes(continent) ? continent : 'All';
+    const allowedDifficulties = ['All', 'Easy', 'Medium', 'Hard'];
+    const selectedDifficulty = allowedDifficulties.includes(difficulty) ? difficulty : 'All';
 
     if (!mode || !['CAPITALS', 'FLAGS', 'POPULATION', 'AREA_SORT', 'GDP_SORT', 'MIX', 'MAP_GUESS'].includes(mode)) {
       return NextResponse.json({ error: 'Invalid game mode' }, { status: 400 });
@@ -47,12 +50,13 @@ export async function POST(req: NextRequest) {
       existing = await prisma.room.findUnique({ where: { roomCode } });
     }
 
-    const countryPool = selectedContinent === 'All'
+    const continentPool = selectedContinent === 'All'
       ? COUNTRIES
       : COUNTRIES.filter((country) => country.continent === selectedContinent);
+    const countryPool = filterCountriesByDifficulty(continentPool, selectedDifficulty);
 
     if (countryPool.length < 4) {
-      return NextResponse.json({ error: 'Not enough countries for this continent' }, { status: 400 });
+      return NextResponse.json({ error: 'Not enough countries for this continent and difficulty. Try All difficulty or All continents.' }, { status: 400 });
     }
 
     // Generate questions
@@ -130,6 +134,7 @@ export async function POST(req: NextRequest) {
         questions: JSON.parse(JSON.stringify(questions)),
         totalQuestions: questions.length,
         continent: selectedContinent === 'All' ? null : selectedContinent,
+        difficulty: selectedDifficulty === 'All' ? null : selectedDifficulty,
         answerTime,
         players: {
           create: friendId ? [{ userId }, { userId: friendId }] : [{ userId }],

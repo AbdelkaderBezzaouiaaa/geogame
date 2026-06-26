@@ -219,6 +219,27 @@ export function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
+const EASY_COUNTRIES = new Set([
+  'Algeria', 'Argentina', 'Australia', 'Brazil', 'Canada', 'China', 'Egypt', 'France', 'Germany', 'India',
+  'Indonesia', 'Italy', 'Japan', 'Mexico', 'Morocco', 'Nigeria', 'Russia', 'Saudi Arabia', 'South Africa',
+  'South Korea', 'Spain', 'Tunisia', 'Turkey', 'United Kingdom', 'United States', 'Vietnam',
+]);
+
+const MEDIUM_COUNTRIES = new Set([
+  ...EASY_COUNTRIES,
+  'Austria', 'Belgium', 'Chile', 'Colombia', 'Costa Rica', 'Croatia', 'Cuba', 'Denmark', 'Finland',
+  'Greece', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Malaysia', 'Netherlands', 'New Zealand', 'Norway',
+  'Pakistan', 'Peru', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Serbia', 'Sweden', 'Switzerland',
+  'Thailand', 'Ukraine', 'United Arab Emirates', 'Uruguay',
+]);
+
+export function filterCountriesByDifficulty(countries: Country[], difficulty: string): Country[] {
+  if (difficulty === 'Easy') return countries.filter((country) => EASY_COUNTRIES.has(country.name));
+  if (difficulty === 'Medium') return countries.filter((country) => MEDIUM_COUNTRIES.has(country.name));
+  if (difficulty === 'Hard') return countries.filter((country) => !EASY_COUNTRIES.has(country.name));
+  return countries;
+}
+
 export interface Question {
   type: 'capital' | 'country_from_capital' | 'map_guess' | 'flag' | 'population' | 'area_sort' | 'gdp_sort';
   questionText: string;

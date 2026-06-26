@@ -38,6 +38,7 @@ const gameModes: { mode: GameMode; icon: any; title: string; desc: string; diffi
 ];
 
 const continents = ['All', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
+const difficulties = ['All', 'Easy', 'Medium', 'Hard'];
 const roundOptions = [1, 3, 5, 10, 15, 20];
 const timeOptions = [5, 10, 15, 20, 30, 45, 60];
 
@@ -48,6 +49,7 @@ export default function DashboardClient() {
   const [selectedMode, setSelectedMode] = useState<GameMode>('CAPITALS');
   const [roundCount, setRoundCount] = useState(10);
   const [continent, setContinent] = useState('All');
+  const [difficulty, setDifficulty] = useState('All');
   const [answerTime, setAnswerTime] = useState(15);
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
@@ -90,7 +92,7 @@ export default function DashboardClient() {
       const res = await fetch('/api/rooms/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: selectedMode, friendId, roundCount, continent, answerTime }),
+        body: JSON.stringify({ mode: selectedMode, friendId, roundCount, continent, difficulty, answerTime }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -269,9 +271,9 @@ export default function DashboardClient() {
                 <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
                   <div>
                     <p className="text-sm font-medium">Lobby Settings</p>
-                    <p className="text-xs text-muted-foreground">Choose rounds, continent, and answer time before creating the room.</p>
+                    <p className="text-xs text-muted-foreground">Choose rounds, continent, difficulty, and answer time before creating the room.</p>
                   </div>
-                  <div className="grid sm:grid-cols-3 gap-3">
+                  <div className="grid sm:grid-cols-4 gap-3">
                     <label className="space-y-1 text-sm">
                       <span className="text-xs text-muted-foreground">Rounds</span>
                       <select value={roundCount} onChange={(e) => setRoundCount(Number(e.target.value))} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
@@ -282,6 +284,12 @@ export default function DashboardClient() {
                       <span className="text-xs text-muted-foreground">Continent</span>
                       <select value={continent} onChange={(e) => setContinent(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
                         {continents.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-sm">
+                      <span className="text-xs text-muted-foreground">Difficulty</span>
+                      <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
+                        {difficulties.map((value) => <option key={value} value={value}>{value}</option>)}
                       </select>
                     </label>
                     <label className="space-y-1 text-sm">

@@ -80,6 +80,7 @@ model Room {
   questionStartedAt    DateTime? @map("question_started_at")
   totalQuestions       Int @default(10) @map("total_questions")
   continent            String? @map("continent")
+  difficulty           String? @map("difficulty")
   answerTime           Int @default(15) @map("answer_time")
   
   host      User       @relation("HostedRooms", fields: [hostId], references: [id])

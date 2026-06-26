@@ -77,6 +77,7 @@ export async function GET(
       currentQuestionIndex: room.currentQuestionIndex,
       totalQuestions: room.totalQuestions,
       continent: room.continent,
+      difficulty: room.difficulty,
       answerTime: room.answerTime,
       questionStartedAt: room.questionStartedAt?.toISOString() ?? null,
       currentQuestion: safeQuestion,
