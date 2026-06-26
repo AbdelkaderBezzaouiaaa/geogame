@@ -9,7 +9,9 @@ export type GeodleFact = {
   government: string;
 };
 
-export const GEODLE_FACTS: Record<string, GeodleFact> = {
+import { COUNTRIES } from './countries';
+
+const KNOWN_GEODLE_FACTS: Record<string, GeodleFact> = {
   Algeria: { name: 'Algeria', code: 'DZ', continent: 'Africa', population: 45600000, landlocked: false, religion: 'Muslim', temperature: 22, government: 'Republic' },
   Argentina: { name: 'Argentina', code: 'AR', continent: 'South America', population: 46000000, landlocked: false, religion: 'Christian', temperature: 15, government: 'Republic' },
   Australia: { name: 'Australia', code: 'AU', continent: 'Oceania', population: 27000000, landlocked: false, religion: 'Christian', temperature: 22, government: 'Parliamentary monarchy' },
@@ -41,12 +43,84 @@ export const GEODLE_FACTS: Record<string, GeodleFact> = {
   Vietnam: { name: 'Vietnam', code: 'VN', continent: 'Asia', population: 101000000, landlocked: false, religion: 'Folk/Buddhist', temperature: 24, government: 'One-party republic' },
 };
 
+const LANDLOCKED = new Set([
+  'Afghanistan', 'Andorra', 'Armenia', 'Austria', 'Azerbaijan', 'Belarus', 'Bhutan', 'Bolivia', 'Botswana',
+  'Burkina Faso', 'Burundi', 'Central African Republic', 'Chad', 'Czech Republic', 'Eswatini', 'Ethiopia',
+  'Hungary', 'Kazakhstan', 'Kyrgyzstan', 'Laos', 'Lesotho', 'Liechtenstein', 'Luxembourg', 'Malawi', 'Mali',
+  'Moldova', 'Mongolia', 'Nepal', 'Niger', 'North Macedonia', 'Paraguay', 'Rwanda', 'San Marino', 'Serbia',
+  'Slovakia', 'South Sudan', 'Switzerland', 'Tajikistan', 'Turkmenistan', 'Uganda', 'Uzbekistan', 'Vatican City',
+  'Zambia', 'Zimbabwe',
+]);
+
+const RELIGION_BY_CONTINENT: Record<string, string> = {
+  Africa: 'Mixed',
+  Asia: 'Mixed',
+  Europe: 'Christian',
+  'North America': 'Christian',
+  'South America': 'Christian',
+  Oceania: 'Christian',
+};
+
+const TEMP_BY_CONTINENT: Record<string, number> = {
+  Africa: 24,
+  Asia: 18,
+  Europe: 9,
+  'North America': 12,
+  'South America': 21,
+  Oceania: 23,
+};
+
+const GOVERNMENT_BY_CONTINENT: Record<string, string> = {
+  Africa: 'Republic',
+  Asia: 'Republic',
+  Europe: 'Parliamentary republic',
+  'North America': 'Republic',
+  'South America': 'Republic',
+  Oceania: 'Parliamentary republic',
+};
+
+const POPULATION_FALLBACK: Record<string, number> = {
+  Azerbaijan: 10200000, Albania: 2800000, Armenia: 3000000, Austria: 9100000, Belgium: 11800000, Chile: 20000000,
+  Colombia: 52000000, Croatia: 3900000, Cuba: 11000000, Denmark: 6000000, Finland: 5600000, Greece: 10400000,
+  Iran: 90000000, Iraq: 45000000, Ireland: 5300000, Israel: 9800000, Malaysia: 34000000, Netherlands: 18000000,
+  'New Zealand': 5300000, Norway: 5600000, Peru: 34000000, Poland: 38000000, Portugal: 10400000, Qatar: 3000000,
+  Romania: 19000000, Serbia: 6600000, Sweden: 10600000, Switzerland: 9000000, 'United Arab Emirates': 10000000,
+  Uruguay: 3500000,
+};
+
+export const GEODLE_FACTS: Record<string, GeodleFact> = Object.fromEntries(
+  COUNTRIES.map((country) => {
+    const known = KNOWN_GEODLE_FACTS[country.name];
+    if (known) return [country.name, known];
+    return [country.name, {
+      name: country.name,
+      code: country.code,
+      continent: country.continent,
+      population: POPULATION_FALLBACK[country.name] ?? 10000000,
+      landlocked: LANDLOCKED.has(country.name),
+      religion: RELIGION_BY_CONTINENT[country.continent] ?? 'Mixed',
+      temperature: TEMP_BY_CONTINENT[country.continent] ?? 18,
+      government: GOVERNMENT_BY_CONTINENT[country.continent] ?? 'Republic',
+    }];
+  })
+);
+
 export function normalizeCountryName(value: unknown) {
   return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 export function findGeodleFact(countryName: string) {
   const normalized = normalizeCountryName(countryName);
+  const aliases: Record<string, string> = {
+    usa: 'United States',
+    us: 'United States',
+    america: 'United States',
+    uk: 'United Kingdom',
+    britain: 'United Kingdom',
+    uae: 'United Arab Emirates',
+    korea: 'South Korea',
+    czechia: 'Czech Republic',
+  };
+  if (aliases[normalized]) return GEODLE_FACTS[aliases[normalized]] ?? null;
   return Object.values(GEODLE_FACTS).find((fact) => normalizeCountryName(fact.name) === normalized) ?? null;
 }
-
