@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
         continent: body?.continent,
         difficulty: body?.difficulty,
         answerTime: body?.answerTime,
+        geodleAttempts: body?.geodleAttempts,
       });
     } catch (error: any) {
       return NextResponse.json({ error: error?.message ?? 'Failed to generate questions' }, { status: 400 });

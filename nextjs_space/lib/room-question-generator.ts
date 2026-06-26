@@ -14,21 +14,24 @@ export type LobbySettingsInput = {
   continent?: string;
   difficulty?: string;
   answerTime?: number;
+  geodleAttempts?: number;
 };
 
 export function normalizeLobbySettings(input: LobbySettingsInput) {
   const mode = GAME_MODES.includes(input.mode as any) ? input.mode : 'CAPITALS';
   const rawRoundCount = Number(input.roundCount ?? TOTAL_QUESTIONS);
   const rawAnswerTime = Number(input.answerTime ?? 15);
+  const rawGeodleAttempts = Number(input.geodleAttempts ?? 6);
   const roundCount = Math.min(20, Math.max(1, Number.isFinite(rawRoundCount) ? Math.floor(rawRoundCount) : TOTAL_QUESTIONS));
   const effectiveRoundCount = mode === 'MIX' ? Math.max(7, roundCount) : roundCount;
   const answerTime = Math.min(60, Math.max(5, Number.isFinite(rawAnswerTime) ? Math.floor(rawAnswerTime) : 15));
+  const geodleAttempts = Math.min(12, Math.max(6, Number.isFinite(rawGeodleAttempts) ? Math.floor(rawGeodleAttempts) : 6));
   const continent = typeof input.continent === 'string' ? input.continent.trim() : 'All';
   const difficulty = typeof input.difficulty === 'string' ? input.difficulty.trim() : 'All';
   const selectedContinent = CONTINENTS.includes(continent as any) ? continent : 'All';
   const selectedDifficulty = DIFFICULTIES.includes(difficulty as any) ? difficulty : 'All';
 
-  return { mode, roundCount, effectiveRoundCount, answerTime, selectedContinent, selectedDifficulty };
+  return { mode, roundCount, effectiveRoundCount, answerTime, geodleAttempts, selectedContinent, selectedDifficulty };
 }
 
 export async function generateRoomQuestions(input: LobbySettingsInput) {
@@ -89,9 +92,10 @@ export async function generateRoomQuestions(input: LobbySettingsInput) {
       settings,
       questions: selected.map((country) => ({
         type: 'geodle',
-        questionText: 'Guess the hidden country in 6 attempts',
+        questionText: `Guess the hidden country in ${settings.geodleAttempts} attempts`,
         correctAnswer: country.name,
         countryCode: country.code,
+        maxAttempts: settings.geodleAttempts,
         facts: GEODLE_FACTS[country.name],
       })),
     };
@@ -126,7 +130,7 @@ export async function generateRoomQuestions(input: LobbySettingsInput) {
       questions.push({ type: 'gdp_sort', questionText: 'Sort these countries from highest to lowest GDP per capita', correctAnswer: '', options: selected.map((country) => ({ name: country.name, gdpPerCapita: GDP_PER_CAPITA[country.name] })) });
     } else {
       const country = shuffleArray(geodleCountries).slice(0, 1)[0];
-      questions.push({ type: 'geodle', questionText: 'Guess the hidden country in 6 attempts', correctAnswer: country.name, countryCode: country.code, facts: GEODLE_FACTS[country.name] });
+      questions.push({ type: 'geodle', questionText: `Guess the hidden country in ${settings.geodleAttempts} attempts`, correctAnswer: country.name, countryCode: country.code, maxAttempts: settings.geodleAttempts, facts: GEODLE_FACTS[country.name] });
     }
   }
 

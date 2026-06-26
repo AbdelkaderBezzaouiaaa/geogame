@@ -7,11 +7,15 @@ export type GeodleFact = {
   religion: string;
   temperature: number;
   government: string;
+  area: number | null;
+  gdpPerCapita: number | null;
 };
 
 import { COUNTRIES } from './countries';
+import { COUNTRY_STATS } from './country-stats';
+import { GDP_PER_CAPITA } from './gdp-per-capita';
 
-const KNOWN_GEODLE_FACTS: Record<string, GeodleFact> = {
+const KNOWN_GEODLE_FACTS: Record<string, Omit<GeodleFact, 'area' | 'gdpPerCapita'>> = {
   Algeria: { name: 'Algeria', code: 'DZ', continent: 'Africa', population: 45600000, landlocked: false, religion: 'Muslim', temperature: 22, government: 'Republic' },
   Argentina: { name: 'Argentina', code: 'AR', continent: 'South America', population: 46000000, landlocked: false, religion: 'Christian', temperature: 15, government: 'Republic' },
   Australia: { name: 'Australia', code: 'AU', continent: 'Oceania', population: 27000000, landlocked: false, religion: 'Christian', temperature: 22, government: 'Parliamentary monarchy' },
@@ -91,7 +95,7 @@ const POPULATION_FALLBACK: Record<string, number> = {
 export const GEODLE_FACTS: Record<string, GeodleFact> = Object.fromEntries(
   COUNTRIES.map((country) => {
     const known = KNOWN_GEODLE_FACTS[country.name];
-    if (known) return [country.name, known];
+    if (known) return [country.name, { ...known, area: COUNTRY_STATS[country.name]?.area ?? null, gdpPerCapita: GDP_PER_CAPITA[country.name] ?? null }];
     return [country.name, {
       name: country.name,
       code: country.code,
@@ -101,6 +105,8 @@ export const GEODLE_FACTS: Record<string, GeodleFact> = Object.fromEntries(
       religion: RELIGION_BY_CONTINENT[country.continent] ?? 'Mixed',
       temperature: TEMP_BY_CONTINENT[country.continent] ?? 18,
       government: GOVERNMENT_BY_CONTINENT[country.continent] ?? 'Republic',
+      area: COUNTRY_STATS[country.name]?.area ?? null,
+      gdpPerCapita: GDP_PER_CAPITA[country.name] ?? null,
     }];
   })
 );

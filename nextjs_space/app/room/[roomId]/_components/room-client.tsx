@@ -64,8 +64,12 @@ type GeodleStatus = 'correct' | 'wrong' | 'higher' | 'lower';
 type GeodleClue = {
   country: string;
   code: string;
+  countryStatus: GeodleStatus;
+  veryClose?: boolean;
   continent: { value: string; status: GeodleStatus };
   population: { value: number; status: GeodleStatus };
+  area: { value: number | null; status: GeodleStatus };
+  gdpPerCapita: { value: number | null; status: GeodleStatus };
   landlocked: { value: string; status: GeodleStatus };
   religion: { value: string; status: GeodleStatus };
   temperature: { value: number; status: GeodleStatus };
@@ -76,6 +80,7 @@ const continents = ['All', 'Africa', 'Asia', 'Europe', 'North America', 'South A
 const difficulties = ['All', 'Easy', 'Medium', 'Hard'];
 const roundOptions = [1, 3, 5, 10, 15, 20];
 const timeOptions = [5, 10, 15, 20, 30, 45, 60];
+const geodleAttemptOptions = [6, 7, 8, 9, 10, 11, 12];
 
 export default function RoomClient({ roomId }: { roomId: string }) {
   const { data: session } = useSession() || {};
@@ -96,6 +101,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
   const [lobbyContinent, setLobbyContinent] = useState('All');
   const [lobbyDifficulty, setLobbyDifficulty] = useState('All');
   const [lobbyAnswerTime, setLobbyAnswerTime] = useState(15);
+  const [lobbyGeodleAttempts, setLobbyGeodleAttempts] = useState(6);
   const [savingSettings, setSavingSettings] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
@@ -166,7 +172,8 @@ export default function RoomClient({ roomId }: { roomId: string }) {
     setLobbyContinent(room.continent ?? 'All');
     setLobbyDifficulty(room.difficulty ?? 'All');
     setLobbyAnswerTime(room.answerTime ?? 15);
-  }, [room?.status, room?.totalQuestions, room?.continent, room?.difficulty, room?.answerTime]);
+    setLobbyGeodleAttempts(room.currentQuestion?.maxAttempts ?? 6);
+  }, [room?.status, room?.totalQuestions, room?.continent, room?.difficulty, room?.answerTime, room?.currentQuestion?.maxAttempts]);
 
   // Timer countdown
   useEffect(() => {
@@ -247,6 +254,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
           continent: lobbyContinent,
           difficulty: lobbyDifficulty,
           answerTime: lobbyAnswerTime,
+          geodleAttempts: lobbyGeodleAttempts,
         }),
       });
       const data = await res.json();
@@ -423,6 +431,14 @@ export default function RoomClient({ roomId }: { roomId: string }) {
                         {difficulties.map((value) => <option key={value} value={value}>{value}</option>)}
                       </select>
                     </label>
+                    {(room.mode === 'GEODLE' || room.mode === 'MIX') && (
+                      <label className="space-y-1 text-sm">
+                        <span className="text-xs text-muted-foreground">Geodle attempts</span>
+                        <select disabled={!isHost} value={lobbyGeodleAttempts} onChange={(e) => setLobbyGeodleAttempts(Number(e.target.value))} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm disabled:opacity-70">
+                          {geodleAttemptOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                        </select>
+                      </label>
+                    )}
                   </div>
                   {room.mode === 'MIX' && <p className="text-xs text-primary">Mix Mode uses at least 7 rounds so every mode can appear.</p>}
                   {!isHost && <p className="text-xs text-muted-foreground">Only the host can change these settings.</p>}
@@ -543,6 +559,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
   const isGeodleQuestion = currentQ?.type === 'geodle';
   const isTypedQuestion = currentQ?.type === 'capital' || currentQ?.type === 'flag' || isPopulationQuestion;
   const isSortQuestion = currentQ?.type === 'area_sort' || currentQ?.type === 'gdp_sort';
+  const geodleMaxAttempts = Math.min(12, Math.max(6, Number(currentQ?.maxAttempts ?? 6)));
 
   const clueClass = (status: GeodleStatus) => status === 'correct'
     ? 'bg-emerald-500 text-white'
@@ -640,8 +657,8 @@ export default function RoomClient({ roomId }: { roomId: string }) {
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between text-sm mb-3">
-                  <span className="font-bold">Attempt {Math.min(geodleClues.length + 1, 6)} / 6</span>
-                  <span className="text-muted-foreground">{6 - geodleClues.length} guesses left</span>
+                  <span className="font-bold">Attempt {Math.min(geodleClues.length + 1, geodleMaxAttempts)} / {geodleMaxAttempts}</span>
+                  <span className="text-muted-foreground">{Math.max(0, geodleMaxAttempts - geodleClues.length)} guesses left</span>
                 </div>
                 {geodleClues.length > 0 && (
                   <div className="overflow-x-auto">
@@ -651,6 +668,8 @@ export default function RoomClient({ roomId }: { roomId: string }) {
                           <th className="text-left py-2">Country</th>
                           <th>Continent</th>
                           <th>Population</th>
+                          <th>Area</th>
+                          <th>GDP/cap</th>
                           <th>Landlocked</th>
                           <th>Religion</th>
                           <th>Temp.</th>
@@ -664,13 +683,17 @@ export default function RoomClient({ roomId }: { roomId: string }) {
                               <span className="mr-2">{index + 1}.</span>
                               <img src={`https://flagcdn.com/w40/${clue.code.toLowerCase()}.png`} alt="" className="inline-block w-7 rounded mr-2" />
                               {clue.country}
+                              <span className={`ml-2 inline-flex min-w-6 h-6 px-1 rounded items-center justify-center font-bold ${clueClass(clue.countryStatus ?? 'wrong')}`}>{clueSymbol(clue.countryStatus ?? 'wrong')}</span>
+                              {clue.veryClose && <div className="mt-1 text-[11px] text-amber-500 font-bold">Very close</div>}
                             </td>
                             {[
                               clue.continent,
                               { value: clue.population.value.toLocaleString('en-US'), status: clue.population.status },
+                              { value: clue.area.value == null ? 'Unknown' : `${clue.area.value.toLocaleString('en-US')} km²`, status: clue.area.status },
+                              { value: clue.gdpPerCapita.value == null ? 'Unknown' : `$${clue.gdpPerCapita.value.toLocaleString('en-US')}`, status: clue.gdpPerCapita.status },
                               clue.landlocked,
                               clue.religion,
-                              { value: `${clue.temperature}°C`, status: clue.temperature.status },
+                              { value: `${clue.temperature.value}°C`, status: clue.temperature.status },
                               clue.government,
                             ].map((item: any, i) => (
                               <td key={i} className="text-center py-2">
@@ -763,10 +786,10 @@ export default function RoomClient({ roomId }: { roomId: string }) {
           )}
         </AnimatePresence>
 
-        {!answerResult?.isCorrect && answerResult?.correctAnswer && (
+        {answerResult?.correctAnswer && (isGeodleQuestion || !answerResult?.isCorrect) && (
           <Card className="border-destructive/30 bg-destructive/10">
             <CardContent className="p-4 text-center">
-              <p className="text-xs uppercase tracking-wide text-destructive font-bold mb-1">Correct answer</p>
+              <p className="text-xs uppercase tracking-wide text-destructive font-bold mb-1">{answerResult.isCorrect ? 'Answer revealed' : 'Correct answer'}</p>
               <p className="text-lg font-display font-bold break-words">{answerResult.correctAnswer}</p>
             </CardContent>
           </Card>

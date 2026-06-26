@@ -66,7 +66,7 @@ export async function GET(
           countryCode: currentQ.countryCode,
           lat: currentQ.lat,
           lng: currentQ.lng,
-          maxAttempts: currentQ.type === 'geodle' ? 6 : undefined,
+          maxAttempts: currentQ.type === 'geodle' ? Number(currentQ.maxAttempts ?? 6) : undefined,
         }
       : null;
 
@@ -134,6 +134,7 @@ export async function PATCH(
         continent: body?.continent ?? room.continent ?? 'All',
         difficulty: body?.difficulty ?? room.difficulty ?? 'All',
         answerTime: body?.answerTime ?? room.answerTime,
+        geodleAttempts: body?.geodleAttempts,
       });
     } catch (error: any) {
       return NextResponse.json({ error: error?.message ?? 'Failed to update lobby settings' }, { status: 400 });
