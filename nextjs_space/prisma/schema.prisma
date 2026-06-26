@@ -57,6 +57,7 @@ enum GameMode {
   POPULATION
   AREA_SORT
   GDP_SORT
+  GEODLE
   MIX
   MAP_GUESS
 }

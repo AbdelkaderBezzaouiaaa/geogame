@@ -43,6 +43,7 @@ interface RoomData {
     countryCode?: string;
     lat?: number;
     lng?: number;
+    maxAttempts?: number;
   } | null;
   answeredCount: number;
   players: Player[];
@@ -59,6 +60,18 @@ interface AnswerResult {
   correctAnswer?: string;
 }
 
+type GeodleStatus = 'correct' | 'wrong' | 'higher' | 'lower';
+type GeodleClue = {
+  country: string;
+  code: string;
+  continent: { value: string; status: GeodleStatus };
+  population: { value: number; status: GeodleStatus };
+  landlocked: { value: string; status: GeodleStatus };
+  religion: { value: string; status: GeodleStatus };
+  temperature: { value: number; status: GeodleStatus };
+  government: { value: string; status: GeodleStatus };
+};
+
 export default function RoomClient({ roomId }: { roomId: string }) {
   const { data: session } = useSession() || {};
   const router = useRouter();
@@ -69,6 +82,8 @@ export default function RoomClient({ roomId }: { roomId: string }) {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [typedAnswer, setTypedAnswer] = useState('');
   const [areaOrder, setAreaOrder] = useState<string[]>([]);
+  const [geodleGuess, setGeodleGuess] = useState('');
+  const [geodleClues, setGeodleClues] = useState<GeodleClue[]>([]);
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
   const [timeLeft, setTimeLeft] = useState(15);
   const [lastQuestionIndex, setLastQuestionIndex] = useState(-1);
@@ -87,9 +102,11 @@ export default function RoomClient({ roomId }: { roomId: string }) {
         ? '📏 Sort by Area'
         : room?.mode === 'GDP_SORT'
           ? '💰 GDP per Capita Sort'
-          : room?.mode === 'MIX'
-            ? '⚔️ Mix Mode'
-            : '🗺️ Map Guess';
+          : room?.mode === 'GEODLE'
+            ? '🧩 Geodle'
+            : room?.mode === 'MIX'
+              ? '⚔️ Mix Mode'
+              : '🗺️ Map Guess';
 
   const fetchRoom = useCallback(async () => {
     try {
@@ -118,6 +135,8 @@ export default function RoomClient({ roomId }: { roomId: string }) {
       setSelectedAnswer(null);
       setTypedAnswer('');
       setAreaOrder(((room.currentQuestion as any)?.options ?? []).map((item: any) => item.name));
+      setGeodleGuess('');
+      setGeodleClues([]);
       setAnswerResult(null);
       setLastQuestionIndex(qi);
       // Reset timer
@@ -193,6 +212,35 @@ export default function RoomClient({ roomId }: { roomId: string }) {
       }
     } catch (e: any) {
       toast.error('Failed to submit answer');
+    } finally {
+      setAnswering(false);
+    }
+  };
+
+  const submitGeodleGuess = async () => {
+    if (answering || selectedAnswer || !geodleGuess.trim()) return;
+    const nextAttempt = geodleClues.length + 1;
+    setAnswering(true);
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/geodle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guess: geodleGuess.trim(), attempt: nextAttempt }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data?.error ?? 'Failed to submit guess');
+        return;
+      }
+      if (data?.clue) setGeodleClues((items) => [...items, data.clue]);
+      setGeodleGuess('');
+      if (data?.completed) {
+        setSelectedAnswer(geodleGuess.trim());
+        setAnswerResult({ isCorrect: Boolean(data.isCorrect), pointsEarned: data.pointsEarned ?? 0, correctAnswer: data.correctAnswer });
+        if (data?.isCorrect) toast.success(`Solved! +${data?.pointsEarned ?? 0} points`);
+      }
+    } catch {
+      toast.error('Failed to submit guess');
     } finally {
       setAnswering(false);
     }
@@ -417,8 +465,18 @@ export default function RoomClient({ roomId }: { roomId: string }) {
   const questionNum = (room.currentQuestionIndex ?? 0) + 1;
   const progressPercent = ((room.currentQuestionIndex ?? 0) / (room.totalQuestions ?? 10)) * 100;
   const isPopulationQuestion = currentQ?.type === 'population';
+  const isGeodleQuestion = currentQ?.type === 'geodle';
   const isTypedQuestion = currentQ?.type === 'capital' || currentQ?.type === 'flag' || isPopulationQuestion;
   const isSortQuestion = currentQ?.type === 'area_sort' || currentQ?.type === 'gdp_sort';
+
+  const clueClass = (status: GeodleStatus) => status === 'correct'
+    ? 'bg-emerald-500 text-white'
+    : status === 'higher'
+      ? 'bg-sky-600 text-white'
+      : status === 'lower'
+        ? 'bg-blue-700 text-white'
+        : 'bg-rose-600 text-white';
+  const clueSymbol = (status: GeodleStatus) => status === 'correct' ? '✓' : status === 'higher' ? '↑' : status === 'lower' ? '↓' : '×';
 
   return (
     <div className="min-h-screen bg-background">
@@ -502,7 +560,63 @@ export default function RoomClient({ roomId }: { roomId: string }) {
         )}
 
         {/* Answer Options */}
-        {isTypedQuestion ? (
+        {isGeodleQuestion ? (
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between text-sm mb-3">
+                  <span className="font-bold">Attempt {Math.min(geodleClues.length + 1, 6)} / 6</span>
+                  <span className="text-muted-foreground">{6 - geodleClues.length} guesses left</span>
+                </div>
+                {geodleClues.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs md:text-sm">
+                      <thead>
+                        <tr className="text-muted-foreground border-b">
+                          <th className="text-left py-2">Country</th>
+                          <th>Continent</th>
+                          <th>Population</th>
+                          <th>Landlocked</th>
+                          <th>Religion</th>
+                          <th>Temp.</th>
+                          <th>Government</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {geodleClues.map((clue, index) => (
+                          <tr key={`${clue.country}-${index}`} className="border-b border-border/60">
+                            <td className="py-2 font-medium">
+                              <span className="mr-2">{index + 1}.</span>
+                              <img src={`https://flagcdn.com/w40/${clue.code.toLowerCase()}.png`} alt="" className="inline-block w-7 rounded mr-2" />
+                              {clue.country}
+                            </td>
+                            {[
+                              clue.continent,
+                              { value: clue.population.value.toLocaleString('en-US'), status: clue.population.status },
+                              clue.landlocked,
+                              clue.religion,
+                              { value: `${clue.temperature}°C`, status: clue.temperature.status },
+                              clue.government,
+                            ].map((item: any, i) => (
+                              <td key={i} className="text-center py-2">
+                                <span className={`inline-flex min-w-7 h-7 px-2 rounded items-center justify-center font-bold ${clueClass(item.status)}`}>{clueSymbol(item.status)}</span>
+                                <div className="mt-1 text-muted-foreground">{item.value}</div>
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <form onSubmit={(event) => { event.preventDefault(); submitGeodleGuess(); }} className="flex gap-2">
+              <Input value={geodleGuess} onChange={(event) => setGeodleGuess(event.target.value)} disabled={hasAnswered || !!selectedAnswer} placeholder="Type a country..." className="h-12 text-lg" autoComplete="off" />
+              <Button type="submit" size="lg" disabled={hasAnswered || !!selectedAnswer || !geodleGuess.trim() || answering}>{answering ? 'Checking...' : 'Guess'}</Button>
+            </form>
+          </div>
+        ) : isTypedQuestion ? (
           <form onSubmit={(event) => { event.preventDefault(); if (typedAnswer.trim()) submitAnswer(typedAnswer); }} className="space-y-3">
             {isPopulationQuestion && currentQ?.countryCode && <img src={`https://flagcdn.com/w160/${currentQ.countryCode.toLowerCase()}.png`} alt="Country flag" className="h-16 mx-auto rounded shadow" />}
             <Input value={typedAnswer} onChange={(event) => setTypedAnswer(isPopulationQuestion ? event.target.value.replace(/\D/g, '') : event.target.value)} disabled={hasAnswered || !!selectedAnswer} placeholder={isPopulationQuestion ? 'Type population (digits only)' : currentQ?.type === 'flag' ? 'Type the country name' : 'Type the capital city'} inputMode={isPopulationQuestion ? 'numeric' : 'text'} className="h-12 text-center text-lg" autoComplete="off" />

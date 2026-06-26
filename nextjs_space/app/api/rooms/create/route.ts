@@ -8,6 +8,7 @@ import { generateRoomCode, TOTAL_QUESTIONS } from '@/lib/room-utils';
 import { filterCountriesByDifficulty, generateCapitalQuestions, generateFlagQuestions, generateMapQuestions } from '@/lib/countries';
 import { COUNTRY_STATS, getCountryStatsBatch } from '@/lib/country-stats';
 import { GDP_PER_CAPITA } from '@/lib/gdp-per-capita';
+import { GEODLE_FACTS } from '@/lib/geodle-facts';
 import { shuffleArray, COUNTRIES } from '@/lib/countries';
 
 export async function POST(req: NextRequest) {
@@ -24,14 +25,14 @@ export async function POST(req: NextRequest) {
     const continent = typeof body?.continent === 'string' ? body.continent.trim() : 'All';
     const difficulty = typeof body?.difficulty === 'string' ? body.difficulty.trim() : 'All';
     const roundCount = Math.min(20, Math.max(1, Number.isFinite(rawRoundCount) ? Math.floor(rawRoundCount) : TOTAL_QUESTIONS));
-    const effectiveRoundCount = mode === 'MIX' ? Math.max(6, roundCount) : roundCount;
+    const effectiveRoundCount = mode === 'MIX' ? Math.max(7, roundCount) : roundCount;
     const answerTime = Math.min(60, Math.max(5, Number.isFinite(rawAnswerTime) ? Math.floor(rawAnswerTime) : 15));
     const allowedContinents = ['All', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
     const selectedContinent = allowedContinents.includes(continent) ? continent : 'All';
     const allowedDifficulties = ['All', 'Easy', 'Medium', 'Hard'];
     const selectedDifficulty = allowedDifficulties.includes(difficulty) ? difficulty : 'All';
 
-    if (!mode || !['CAPITALS', 'FLAGS', 'POPULATION', 'AREA_SORT', 'GDP_SORT', 'MIX', 'MAP_GUESS'].includes(mode)) {
+    if (!mode || !['CAPITALS', 'FLAGS', 'POPULATION', 'AREA_SORT', 'GDP_SORT', 'GEODLE', 'MIX', 'MAP_GUESS'].includes(mode)) {
       return NextResponse.json({ error: 'Invalid game mode' }, { status: 400 });
     }
 
@@ -89,14 +90,25 @@ export async function POST(req: NextRequest) {
           options: roundCountries.map((country) => ({ name: country.name, gdpPerCapita: GDP_PER_CAPITA[country.name] })),
         };
       });
+    } else if (mode === 'GEODLE') {
+      const selected = shuffleArray(countryPool.filter((country) => GEODLE_FACTS[country.name])).slice(0, effectiveRoundCount);
+      if (selected.length < effectiveRoundCount) return NextResponse.json({ error: 'Geodle data is unavailable for this continent/difficulty. Try All.' }, { status: 503 });
+      questions = selected.map((country) => ({
+        type: 'geodle',
+        questionText: 'Guess the hidden country in 6 attempts',
+        correctAnswer: country.name,
+        countryCode: country.code,
+        facts: GEODLE_FACTS[country.name],
+      }));
     } else if (mode === 'MIX') {
       const statCountries = countryPool.filter((country) => COUNTRY_STATS[country.name]);
       const gdpCountries = countryPool.filter((country) => GDP_PER_CAPITA[country.name]);
-      if (statCountries.length < 10 || gdpCountries.length < 10) {
+      const geodleCountries = countryPool.filter((country) => GEODLE_FACTS[country.name]);
+      if (statCountries.length < 10 || gdpCountries.length < 10 || geodleCountries.length < 1) {
         return NextResponse.json({ error: 'Mix Mode needs enough population, area, and GDP data. Try All continents or choose another mode.' }, { status: 503 });
       }
 
-      const mixModes = shuffleArray(['CAPITALS', 'FLAGS', 'MAP_GUESS', 'POPULATION', 'AREA_SORT', 'GDP_SORT']);
+      const mixModes = shuffleArray(['CAPITALS', 'FLAGS', 'MAP_GUESS', 'POPULATION', 'AREA_SORT', 'GDP_SORT', 'GEODLE']);
       questions = [];
       for (let i = 0; i < effectiveRoundCount; i++) {
         const nextMode = mixModes[i % mixModes.length];
@@ -116,9 +128,12 @@ export async function POST(req: NextRequest) {
           const stats = await getCountryStatsBatch(selected.map((country) => country.name));
           if (stats.length < 10) return NextResponse.json({ error: 'Country statistics are temporarily unavailable' }, { status: 503 });
           questions.push({ type: 'area_sort', questionText: 'Sort these countries from largest to smallest area', correctAnswer: '', options: stats.map(({ name, stats }) => ({ name, area: stats.area })) });
-        } else {
+        } else if (nextMode === 'GDP_SORT') {
           const selected = shuffleArray(gdpCountries).slice(0, 10);
           questions.push({ type: 'gdp_sort', questionText: 'Sort these countries from highest to lowest GDP per capita', correctAnswer: '', options: selected.map((country) => ({ name: country.name, gdpPerCapita: GDP_PER_CAPITA[country.name] })) });
+        } else {
+          const country = shuffleArray(geodleCountries).slice(0, 1)[0];
+          questions.push({ type: 'geodle', questionText: 'Guess the hidden country in 6 attempts', correctAnswer: country.name, countryCode: country.code, facts: GEODLE_FACTS[country.name] });
         }
       }
     } else {

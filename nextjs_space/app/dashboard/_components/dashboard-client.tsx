@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
-type GameMode = 'CAPITALS' | 'FLAGS' | 'POPULATION' | 'AREA_SORT' | 'GDP_SORT' | 'MIX' | 'MAP_GUESS';
+type GameMode = 'CAPITALS' | 'FLAGS' | 'POPULATION' | 'AREA_SORT' | 'GDP_SORT' | 'GEODLE' | 'MIX' | 'MAP_GUESS';
 
 interface MatchHistory {
   id: string;
@@ -34,6 +34,7 @@ const gameModes: { mode: GameMode; icon: any; title: string; desc: string; diffi
   { mode: 'POPULATION', icon: Users, title: 'Guess the Population', desc: 'Closest population guess wins each round', difficulty: 'Hard' },
   { mode: 'AREA_SORT', icon: MapPin, title: 'Sort by Area', desc: 'Order countries from largest to smallest', difficulty: 'Expert' },
   { mode: 'GDP_SORT', icon: Trophy, title: 'Sort by GDP per Capita', desc: 'Order countries from richest to poorest per person', difficulty: 'Expert' },
+  { mode: 'GEODLE', icon: Globe2, title: 'Geodle', desc: 'Guess the country with clues after each attempt', difficulty: 'Expert' },
   { mode: 'MIX', icon: Swords, title: 'Mix Mode', desc: 'All modes mixed into one battle', difficulty: 'Extreme' },
 ];
 
@@ -241,7 +242,7 @@ export default function DashboardClient() {
                       key={gm.mode}
                       onClick={() => {
                         setSelectedMode(gm.mode);
-                        if (gm.mode === 'MIX' && roundCount < 6) setRoundCount(10);
+                        if (gm.mode === 'MIX' && roundCount < 7) setRoundCount(10);
                       }}
                       className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${
                         selectedMode === gm.mode
@@ -303,7 +304,7 @@ export default function DashboardClient() {
                     <p className="text-xs text-amber-500">Some advanced data is available for fewer countries, so choose fewer rounds if this continent is small.</p>
                   )}
                   {selectedMode === 'MIX' && (
-                    <p className="text-xs text-primary">Mix Mode includes Capitals, Flags, Map Guess, Population, Area Sort, and GDP Sort.</p>
+                    <p className="text-xs text-primary">Mix Mode includes Capitals, Flags, Map Guess, Population, Area Sort, GDP Sort, and Geodle.</p>
                   )}
                 </div>
 

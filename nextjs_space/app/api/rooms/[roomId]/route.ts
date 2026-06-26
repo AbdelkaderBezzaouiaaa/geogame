@@ -65,6 +65,7 @@ export async function GET(
           countryCode: currentQ.countryCode,
           lat: currentQ.lat,
           lng: currentQ.lng,
+          maxAttempts: currentQ.type === 'geodle' ? 6 : undefined,
         }
       : null;
 
