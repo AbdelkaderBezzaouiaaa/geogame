@@ -146,7 +146,7 @@ export default function DashboardClient() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen geo-shell">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-[1200px] mx-auto px-4 h-16 flex items-center justify-between">
@@ -180,13 +180,13 @@ export default function DashboardClient() {
         </aside>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-4 py-8 space-y-8 lg:pl-80">
+      <main className="relative z-10 max-w-[1200px] mx-auto px-4 py-8 space-y-8 lg:pl-80">
         {/* Welcome */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight mb-2">
+          <h1 className="text-3xl md:text-5xl font-display font-black tracking-tight mb-2 geo-title">
             Ready to <span className="text-primary">compete</span>?
           </h1>
           <p className="text-muted-foreground">Create a room or join a friend&apos;s challenge</p>

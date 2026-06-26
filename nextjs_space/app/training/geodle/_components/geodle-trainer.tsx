@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, Globe2, RotateCcw, SkipForward, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Compass, Globe2, Map, RotateCcw, SkipForward, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GEODLE_FACTS, findGeodleFact, type GeodleFact } from '@/lib/geodle-facts';
@@ -104,8 +104,8 @@ export default function GeodleTrainer() {
   const clueSymbol = (value: Status) => value === 'correct' ? '✓' : value === 'higher' ? '↑' : value === 'lower' ? '↓' : '×';
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+    <div className="min-h-screen geo-shell">
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
             <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
@@ -117,35 +117,44 @@ export default function GeodleTrainer() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-10 space-y-6">
-        <section className="text-center space-y-3">
-          <h1 className="text-3xl md:text-4xl font-display font-bold">Geodle Training</h1>
-          <p className="text-muted-foreground">Six attempts to find the hidden country. Each guess gives clues.</p>
+      <main className="relative z-10 max-w-5xl mx-auto px-4 py-10 space-y-6">
+        <section className="text-center space-y-5">
+          <div className="mx-auto w-20 h-20 rounded-3xl bg-primary/15 border border-primary/25 flex items-center justify-center geo-float shadow-lg">
+            <Globe2 className="w-10 h-10 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.35em] text-primary font-bold mb-2">Atlas challenge</p>
+            <h1 className="text-4xl md:text-6xl font-display font-black geo-title">Geodle Training</h1>
+          </div>
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">Six attempts to find the hidden country. Read the clues like a cartographer.</p>
           <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto">
-            <div className="rounded-xl bg-muted/50 p-3">
+            <div className="rounded-2xl glass-card p-4">
               <p className="text-xl font-mono font-bold text-primary">{attempt > 6 ? 6 : attempt}/6</p>
               <p className="text-xs text-muted-foreground">Attempt</p>
             </div>
-            <div className="rounded-xl bg-muted/50 p-3">
+            <div className="rounded-2xl glass-card p-4">
               <p className="text-xl font-mono font-bold">{wins}</p>
               <p className="text-xs text-muted-foreground">Solved</p>
             </div>
-            <div className="rounded-xl bg-muted/50 p-3">
+            <div className="rounded-2xl glass-card p-4">
               <p className="text-xl font-mono font-bold">{played}</p>
               <p className="text-xs text-muted-foreground">Played</p>
             </div>
           </div>
         </section>
 
-        <section className="rounded-2xl border bg-card shadow-lg overflow-hidden">
-          <div className="p-4 flex items-center justify-between border-b">
-            <span className="font-bold">Hidden country</span>
+        <section className="rounded-3xl glass-card overflow-hidden">
+          <div className="p-5 flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10">
+            <span className="font-bold flex items-center gap-2"><Map className="w-4 h-4 text-primary" /> Hidden country</span>
             <span className="text-sm text-muted-foreground">{left} guesses left</span>
           </div>
 
           <div className="p-4 overflow-x-auto">
             {clues.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">Make your first guess to reveal clues.</p>
+              <div className="text-center text-muted-foreground py-12">
+                <Compass className="w-12 h-12 mx-auto mb-3 text-primary/60" />
+                <p>Make your first guess to reveal the map clues.</p>
+              </div>
             ) : (
               <table className="w-full text-xs md:text-sm">
                 <thead>
@@ -161,7 +170,7 @@ export default function GeodleTrainer() {
                 </thead>
                 <tbody>
                   {clues.map((clue, index) => (
-                    <tr key={`${clue.country}-${index}`} className="border-b border-border/60">
+                    <tr key={`${clue.country}-${index}`} className="border-b border-border/60 hover:bg-primary/5 transition-colors">
                       <td className="py-3 font-medium">
                         <span className="mr-2">{index + 1}.</span>
                         <img src={`https://flagcdn.com/w40/${clue.code.toLowerCase()}.png`} alt="" className="inline-block w-7 rounded mr-2" />
@@ -176,7 +185,7 @@ export default function GeodleTrainer() {
                         clue.government,
                       ].map((item: any, i) => (
                         <td key={i} className="text-center py-3">
-                          <span className={`inline-flex min-w-7 h-7 px-2 rounded items-center justify-center font-bold ${clueClass(item.status)}`}>{clueSymbol(item.status)}</span>
+                          <span className={`inline-flex min-w-8 h-8 px-2 rounded-xl items-center justify-center font-bold shadow-md ${clueClass(item.status)}`}>{clueSymbol(item.status)}</span>
                           <div className="mt-1 text-muted-foreground">{item.value}</div>
                         </td>
                       ))}
@@ -198,7 +207,7 @@ export default function GeodleTrainer() {
           </div>
         )}
 
-        <form onSubmit={submit} className="rounded-2xl border bg-card p-3 flex gap-2">
+        <form onSubmit={submit} className="rounded-3xl glass-card p-3 flex gap-2">
           <Input
             list="geodle-countries"
             value={guess}
@@ -222,11 +231,11 @@ export default function GeodleTrainer() {
 
         {message && <p className="text-center text-sm text-destructive">{message}</p>}
 
-        <div className="rounded-xl border bg-card p-3 flex flex-wrap items-center justify-center gap-4 text-sm">
-          <span><span className="inline-flex w-7 h-7 rounded bg-emerald-500 text-white items-center justify-center font-bold mr-1">✓</span> Correct</span>
-          <span><span className="inline-flex w-7 h-7 rounded bg-rose-600 text-white items-center justify-center font-bold mr-1">×</span> Incorrect</span>
-          <span><span className="inline-flex w-7 h-7 rounded bg-sky-600 text-white items-center justify-center font-bold mr-1">↑</span> Answer is higher</span>
-          <span><span className="inline-flex w-7 h-7 rounded bg-blue-700 text-white items-center justify-center font-bold mr-1">↓</span> Answer is lower</span>
+        <div className="rounded-3xl glass-card p-4 flex flex-wrap items-center justify-center gap-4 text-sm">
+          <span><span className="inline-flex w-8 h-8 rounded-xl bg-emerald-500 text-white items-center justify-center font-bold mr-1">✓</span> Correct</span>
+          <span><span className="inline-flex w-8 h-8 rounded-xl bg-rose-600 text-white items-center justify-center font-bold mr-1">×</span> Incorrect</span>
+          <span><span className="inline-flex w-8 h-8 rounded-xl bg-sky-600 text-white items-center justify-center font-bold mr-1">↑</span> Answer is higher</span>
+          <span><span className="inline-flex w-8 h-8 rounded-xl bg-blue-700 text-white items-center justify-center font-bold mr-1">↓</span> Answer is lower</span>
         </div>
       </main>
     </div>

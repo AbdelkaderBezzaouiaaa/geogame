@@ -260,7 +260,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
   // WAITING state - Lobby
   if (room.status === 'WAITING') {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen geo-shell">
         <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
           <div className="max-w-[1200px] mx-auto px-4 h-16 flex items-center justify-between">
             <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
@@ -275,7 +275,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
           </div>
         </header>
 
-        <main className="max-w-lg mx-auto px-4 py-12">
+        <main className="relative z-10 max-w-lg mx-auto px-4 py-12">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -387,7 +387,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
     const isDraw = !room.match?.winnerId;
 
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen geo-shell">
         <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
           <div className="max-w-[1200px] mx-auto px-4 h-16 flex items-center justify-between">
             <div />
@@ -399,7 +399,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
           </div>
         </header>
 
-        <main className="max-w-lg mx-auto px-4 py-12">
+        <main className="relative z-10 max-w-lg mx-auto px-4 py-12">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -479,7 +479,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
   const clueSymbol = (status: GeodleStatus) => status === 'correct' ? '✓' : status === 'higher' ? '↑' : status === 'lower' ? '↓' : '×';
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen geo-shell">
       {/* Game Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-[1200px] mx-auto px-4 h-14 flex items-center justify-between">
@@ -506,7 +506,7 @@ export default function RoomClient({ roomId }: { roomId: string }) {
         <Progress value={progressPercent} className="h-1" />
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <main className="relative z-10 max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Timer */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
