@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
@@ -72,6 +72,11 @@ type GeodleClue = {
   government: { value: string; status: GeodleStatus };
 };
 
+const continents = ['All', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
+const difficulties = ['All', 'Easy', 'Medium', 'Hard'];
+const roundOptions = [1, 3, 5, 10, 15, 20];
+const timeOptions = [5, 10, 15, 20, 30, 45, 60];
+
 export default function RoomClient({ roomId }: { roomId: string }) {
   const { data: session } = useSession() || {};
   const router = useRouter();
@@ -87,6 +92,11 @@ export default function RoomClient({ roomId }: { roomId: string }) {
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
   const [timeLeft, setTimeLeft] = useState(15);
   const [lastQuestionIndex, setLastQuestionIndex] = useState(-1);
+  const [lobbyRoundCount, setLobbyRoundCount] = useState(10);
+  const [lobbyContinent, setLobbyContinent] = useState('All');
+  const [lobbyDifficulty, setLobbyDifficulty] = useState('All');
+  const [lobbyAnswerTime, setLobbyAnswerTime] = useState(15);
+  const [savingSettings, setSavingSettings] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -149,6 +159,14 @@ export default function RoomClient({ roomId }: { roomId: string }) {
       }
     }
   }, [room?.currentQuestionIndex, room?.status, room?.questionStartedAt, room?.answerTime, lastQuestionIndex]);
+
+  useEffect(() => {
+    if (room?.status !== 'WAITING') return;
+    setLobbyRoundCount(room.totalQuestions ?? 10);
+    setLobbyContinent(room.continent ?? 'All');
+    setLobbyDifficulty(room.difficulty ?? 'All');
+    setLobbyAnswerTime(room.answerTime ?? 15);
+  }, [room?.status, room?.totalQuestions, room?.continent, room?.difficulty, room?.answerTime]);
 
   // Timer countdown
   useEffect(() => {
@@ -217,6 +235,34 @@ export default function RoomClient({ roomId }: { roomId: string }) {
     }
   };
 
+  const saveLobbySettings = async () => {
+    if (!isHost || savingSettings) return;
+    setSavingSettings(true);
+    try {
+      const res = await fetch(`/api/rooms/${roomId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roundCount: lobbyRoundCount,
+          continent: lobbyContinent,
+          difficulty: lobbyDifficulty,
+          answerTime: lobbyAnswerTime,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data?.error ?? 'Failed to save settings');
+        return;
+      }
+      toast.success('Lobby settings updated');
+      fetchRoom();
+    } catch {
+      toast.error('Failed to save settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   const submitGeodleGuess = async () => {
     if (answering || selectedAnswer || !geodleGuess.trim()) return;
     const nextAttempt = geodleClues.length + 1;
@@ -275,104 +321,133 @@ export default function RoomClient({ roomId }: { roomId: string }) {
           </div>
         </header>
 
-        <main className="relative z-10 max-w-lg mx-auto px-4 py-12">
+        <main className="relative z-10 max-w-5xl mx-auto px-4 py-8">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-center space-y-8"
+            className="grid lg:grid-cols-[0.9fr_1.1fr] gap-6 items-start"
           >
-            {/* Room Code */}
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Share this code with your friend</p>
-              <div
-                onClick={copyCode}
-                className="inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-card cursor-pointer hover:bg-muted/50 transition-colors animate-pulse-glow"
-                style={{ boxShadow: 'var(--shadow-lg)' }}
-              >
-                <span className="text-4xl font-mono font-bold tracking-[0.3em] text-primary">
-                  {room.roomCode}
-                </span>
-                {copied ? (
-                  <Check className="w-6 h-6 text-green-500" />
-                ) : (
-                  <Copy className="w-6 h-6 text-muted-foreground" />
-                )}
-              </div>
+            <div className="space-y-5 text-center">
+              {/* Room Code */}
+              <Card className="glass-card">
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground mb-2">Share this code with your friend</p>
+                  <div
+                    onClick={copyCode}
+                    className="inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-card cursor-pointer hover:bg-muted/50 transition-colors animate-pulse-glow"
+                    style={{ boxShadow: 'var(--shadow-lg)' }}
+                  >
+                    <span className="text-4xl font-mono font-bold tracking-[0.3em] text-primary">
+                      {room.roomCode}
+                    </span>
+                    {copied ? (
+                      <Check className="w-6 h-6 text-green-500" />
+                    ) : (
+                      <Copy className="w-6 h-6 text-muted-foreground" />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Mode */}
+              <Badge variant="secondary" className="text-sm px-4 py-1.5">
+                {modeLabel}
+              </Badge>
+
+              {/* Players */}
+              <Card className="glass-card">
+                <CardContent className="p-6">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-4 flex items-center gap-2 justify-center">
+                    <Users className="w-4 h-4" />
+                    Players ({room.players?.length ?? 0}/2)
+                  </h3>
+                  <div className="space-y-3">
+                    {room.players?.map((p: Player) => (
+                      <button key={p?.id} onClick={() => router.push(`/profile/${p.id}`)} className="w-full flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/60 text-left transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          {p.avatarUrl ? <img src={p.avatarUrl} alt="" className="w-full h-full object-cover rounded-full" /> : <span className="text-lg font-bold text-primary">{(p?.username ?? '?')?.[0]?.toUpperCase()}</span>}
+                        </div>
+                        <span className="font-medium">{p?.username}</span>
+                        {p?.id === room.hostId && (
+                          <Badge variant="default" className="ml-auto text-xs">
+                            <Crown className="w-3 h-3 mr-1" />
+                            Host
+                          </Badge>
+                        )}
+                      </button>
+                    ))}
+                    {(room.players?.length ?? 0) < 2 && (
+                      <div className="flex items-center gap-3 p-3 rounded-lg border-2 border-dashed border-muted">
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                          <Users className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                        <span className="text-muted-foreground text-sm">Waiting for opponent...</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            {/* Mode */}
-            <Badge variant="secondary" className="text-sm px-4 py-1.5">
-              {modeLabel}
-            </Badge>
-
-            <Card>
-              <CardContent className="p-4 grid grid-cols-4 gap-3 text-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Rounds</p>
-                  <p className="font-mono font-bold">{room.totalQuestions}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Continent</p>
-                  <p className="font-medium text-sm">{room.continent ?? 'All'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Difficulty</p>
-                  <p className="font-medium text-sm">{room.difficulty ?? 'All'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Answer time</p>
-                  <p className="font-mono font-bold">{room.answerTime ?? 15}s</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Players */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-sm font-medium text-muted-foreground mb-4 flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Players ({room.players?.length ?? 0}/2)
-                </h3>
-                <div className="space-y-3">
-                  {room.players?.map((p: Player) => (
-                    <button key={p?.id} onClick={() => router.push(`/profile/${p.id}`)} className="w-full flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/60 text-left transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                        {p.avatarUrl ? <img src={p.avatarUrl} alt="" className="w-full h-full object-cover rounded-full" /> : <span className="text-lg font-bold text-primary">{(p?.username ?? '?')?.[0]?.toUpperCase()}</span>}
-                      </div>
-                      <span className="font-medium">{p?.username}</span>
-                      {p?.id === room.hostId && (
-                        <Badge variant="default" className="ml-auto text-xs">
-                          <Crown className="w-3 h-3 mr-1" />
-                          Host
-                        </Badge>
-                      )}
-                    </button>
-                  ))}
-                  {(room.players?.length ?? 0) < 2 && (
-                    <div className="flex items-center gap-3 p-3 rounded-lg border-2 border-dashed border-muted">
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                        <Users className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <span className="text-muted-foreground text-sm">Waiting for opponent...</span>
-                    </div>
+            <div className="space-y-5">
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Shield className="w-5 h-5 text-primary" />
+                    Lobby Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <label className="space-y-1 text-sm">
+                      <span className="text-xs text-muted-foreground">Rounds</span>
+                      <select disabled={!isHost} value={lobbyRoundCount} onChange={(e) => setLobbyRoundCount(Number(e.target.value))} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm disabled:opacity-70">
+                        {roundOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-sm">
+                      <span className="text-xs text-muted-foreground">Answer time</span>
+                      <select disabled={!isHost} value={lobbyAnswerTime} onChange={(e) => setLobbyAnswerTime(Number(e.target.value))} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm disabled:opacity-70">
+                        {timeOptions.map((value) => <option key={value} value={value}>{value}s</option>)}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-sm">
+                      <span className="text-xs text-muted-foreground">Continent</span>
+                      <select disabled={!isHost} value={lobbyContinent} onChange={(e) => setLobbyContinent(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm disabled:opacity-70">
+                        {continents.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-sm">
+                      <span className="text-xs text-muted-foreground">Difficulty</span>
+                      <select disabled={!isHost} value={lobbyDifficulty} onChange={(e) => setLobbyDifficulty(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm disabled:opacity-70">
+                        {difficulties.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  {room.mode === 'MIX' && <p className="text-xs text-primary">Mix Mode uses at least 7 rounds so every mode can appear.</p>}
+                  {!isHost && <p className="text-xs text-muted-foreground">Only the host can change these settings.</p>}
+                  {isHost && (
+                    <Button className="w-full" variant="secondary" onClick={saveLobbySettings} loading={savingSettings}>
+                      Save Lobby Settings
+                    </Button>
                   )}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* Start Button */}
-            {isHost && (room.players?.length ?? 0) >= 2 && (
-              <Button size="lg" className="w-full text-lg" onClick={startGame} loading={starting}>
-                <Play className="w-5 h-5 mr-2" />
-                Start Game
-              </Button>
-            )}
-            {isHost && (room.players?.length ?? 0) < 2 && (
-              <p className="text-sm text-muted-foreground">Waiting for a second player to join...</p>
-            )}
-            {!isHost && (
-              <p className="text-sm text-muted-foreground">Waiting for the host to start the game...</p>
-            )}
+              {/* Start Button */}
+              {isHost && (room.players?.length ?? 0) >= 2 && (
+                <Button size="lg" className="w-full text-lg" onClick={startGame} loading={starting}>
+                  <Play className="w-5 h-5 mr-2" />
+                  Start Game
+                </Button>
+              )}
+              {isHost && (room.players?.length ?? 0) < 2 && (
+                <p className="text-sm text-muted-foreground text-center">Waiting for a second player to join...</p>
+              )}
+              {!isHost && (
+                <p className="text-sm text-muted-foreground text-center">Waiting for the host to start the game...</p>
+              )}
+            </div>
           </motion.div>
         </main>
       </div>

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
+import { generateRoomQuestions } from '@/lib/room-question-generator';
 
 export async function GET(
   req: NextRequest,
@@ -101,5 +102,63 @@ export async function GET(
   } catch (error: any) {
     console.error('Get room error:', error);
     return NextResponse.json({ error: 'Failed to get room' }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { roomId: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = (session.user as any).id;
+    const room = await prisma.room.findUnique({
+      where: { id: params?.roomId },
+      include: { players: true },
+    });
+
+    if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+    if (room.hostId !== userId) return NextResponse.json({ error: 'Only the host can change lobby settings' }, { status: 403 });
+    if (room.status !== 'WAITING') return NextResponse.json({ error: 'Settings can only be changed before the game starts' }, { status: 400 });
+
+    const body = await req.json();
+    let generated;
+    try {
+      generated = await generateRoomQuestions({
+        mode: room.mode,
+        roundCount: body?.roundCount ?? room.totalQuestions,
+        continent: body?.continent ?? room.continent ?? 'All',
+        difficulty: body?.difficulty ?? room.difficulty ?? 'All',
+        answerTime: body?.answerTime ?? room.answerTime,
+      });
+    } catch (error: any) {
+      return NextResponse.json({ error: error?.message ?? 'Failed to update lobby settings' }, { status: 400 });
+    }
+
+    const updated = await prisma.room.update({
+      where: { id: room.id },
+      data: {
+        questions: JSON.parse(JSON.stringify(generated.questions)),
+        totalQuestions: generated.questions.length,
+        continent: generated.settings.selectedContinent === 'All' ? null : generated.settings.selectedContinent,
+        difficulty: generated.settings.selectedDifficulty === 'All' ? null : generated.settings.selectedDifficulty,
+        answerTime: generated.settings.answerTime,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      totalQuestions: updated.totalQuestions,
+      continent: updated.continent,
+      difficulty: updated.difficulty,
+      answerTime: updated.answerTime,
+    });
+  } catch (error: any) {
+    console.error('Update room settings error:', error);
+    return NextResponse.json({ error: 'Failed to update lobby settings' }, { status: 500 });
   }
 }

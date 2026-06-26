@@ -38,20 +38,11 @@ const gameModes: { mode: GameMode; icon: any; title: string; desc: string; diffi
   { mode: 'MIX', icon: Swords, title: 'Mix Mode', desc: 'All modes mixed into one battle', difficulty: 'Extreme' },
 ];
 
-const continents = ['All', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
-const difficulties = ['All', 'Easy', 'Medium', 'Hard'];
-const roundOptions = [1, 3, 5, 10, 15, 20];
-const timeOptions = [5, 10, 15, 20, 30, 45, 60];
-
 export default function DashboardClient() {
   const { data: session } = useSession() || {};
   const router = useRouter();
   const [joinCode, setJoinCode] = useState('');
   const [selectedMode, setSelectedMode] = useState<GameMode>('CAPITALS');
-  const [roundCount, setRoundCount] = useState(10);
-  const [continent, setContinent] = useState('All');
-  const [difficulty, setDifficulty] = useState('All');
-  const [answerTime, setAnswerTime] = useState(15);
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
   const [history, setHistory] = useState<MatchHistory[]>([]);
@@ -93,7 +84,7 @@ export default function DashboardClient() {
       const res = await fetch('/api/rooms/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: selectedMode, friendId, roundCount, continent, difficulty, answerTime }),
+        body: JSON.stringify({ mode: selectedMode, friendId }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -219,7 +210,7 @@ export default function DashboardClient() {
         </motion.div>
 
         {/* Action Cards */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid xl:grid-cols-[1.25fr_0.75fr] gap-6 items-start">
           {/* Create Room */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -234,20 +225,17 @@ export default function DashboardClient() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">Choose a game mode and share the room code with a friend</p>
+                <p className="text-sm text-muted-foreground">Choose a mode now. Rounds, continent, difficulty and timer are changed inside the lobby while waiting for your friend.</p>
                 
-                <div className="space-y-2">
+                <div className="grid sm:grid-cols-2 gap-2">
                   {gameModes.map((gm) => (
                     <button
                       key={gm.mode}
-                      onClick={() => {
-                        setSelectedMode(gm.mode);
-                        if (gm.mode === 'MIX' && roundCount < 7) setRoundCount(10);
-                      }}
-                      className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${
+                      onClick={() => setSelectedMode(gm.mode)}
+                      className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
                         selectedMode === gm.mode
-                          ? 'bg-primary/10 ring-2 ring-primary'
-                          : 'bg-muted/50 hover:bg-muted'
+                          ? 'bg-primary/10 border-primary ring-2 ring-primary/40'
+                          : 'bg-muted/30 border-border hover:bg-muted'
                       }`}
                     >
                       <div className={`w-8 h-8 rounded-md flex items-center justify-center ${
@@ -255,57 +243,18 @@ export default function DashboardClient() {
                       }`}>
                         <gm.icon className="w-4 h-4" />
                       </div>
-                      <div className="text-left">
+                      <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium">{gm.title}</p>
                           <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{gm.difficulty}</Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground">{gm.desc}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{gm.desc}</p>
                       </div>
                       {selectedMode === gm.mode && (
                         <ChevronRight className="w-4 h-4 text-primary ml-auto" />
                       )}
                     </button>
                   ))}
-                </div>
-
-                <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
-                  <div>
-                    <p className="text-sm font-medium">Lobby Settings</p>
-                    <p className="text-xs text-muted-foreground">Choose rounds, continent, difficulty, and answer time before creating the room.</p>
-                  </div>
-                  <div className="grid sm:grid-cols-4 gap-3">
-                    <label className="space-y-1 text-sm">
-                      <span className="text-xs text-muted-foreground">Rounds</span>
-                      <select value={roundCount} onChange={(e) => setRoundCount(Number(e.target.value))} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
-                        {roundOptions.map((value) => <option key={value} value={value}>{value}</option>)}
-                      </select>
-                    </label>
-                    <label className="space-y-1 text-sm">
-                      <span className="text-xs text-muted-foreground">Continent</span>
-                      <select value={continent} onChange={(e) => setContinent(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
-                        {continents.map((value) => <option key={value} value={value}>{value}</option>)}
-                      </select>
-                    </label>
-                    <label className="space-y-1 text-sm">
-                      <span className="text-xs text-muted-foreground">Difficulty</span>
-                      <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
-                        {difficulties.map((value) => <option key={value} value={value}>{value}</option>)}
-                      </select>
-                    </label>
-                    <label className="space-y-1 text-sm">
-                      <span className="text-xs text-muted-foreground">Answer time</span>
-                      <select value={answerTime} onChange={(e) => setAnswerTime(Number(e.target.value))} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
-                        {timeOptions.map((value) => <option key={value} value={value}>{value}s</option>)}
-                      </select>
-                    </label>
-                  </div>
-                  {(selectedMode === 'POPULATION' || selectedMode === 'AREA_SORT' || selectedMode === 'GDP_SORT') && continent !== 'All' && (
-                    <p className="text-xs text-amber-500">Some advanced data is available for fewer countries, so choose fewer rounds if this continent is small.</p>
-                  )}
-                  {selectedMode === 'MIX' && (
-                    <p className="text-xs text-primary">Mix Mode includes Capitals, Flags, Map Guess, Population, Area Sort, GDP Sort, and Geodle.</p>
-                  )}
                 </div>
 
                 <Button className="w-full" size="lg" onClick={() => createRoom()} loading={creating}>
@@ -316,7 +265,7 @@ export default function DashboardClient() {
             </Card>
           </motion.div>
 
-          {/* Join Room */}
+          {/* Join / Training */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -326,10 +275,28 @@ export default function DashboardClient() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-primary" />
-                  Join Room
+                  Play Fast
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="rounded-2xl border bg-muted/20 p-4 space-y-3">
+                  <p className="text-sm font-medium">Training</p>
+                  <div className="grid gap-2">
+                    <Button variant="secondary" className="justify-between" onClick={() => router.push('/training/flags')}>
+                      <span className="flex items-center gap-2"><Flag className="w-4 h-4" /> Flag Trainer</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                    <Button variant="secondary" className="justify-between" onClick={() => router.push('/training/capitals')}>
+                      <span className="flex items-center gap-2"><Globe2 className="w-4 h-4" /> Capital Trainer</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                    <Button variant="secondary" className="justify-between" onClick={() => router.push('/training/geodle')}>
+                      <span className="flex items-center gap-2"><MapPin className="w-4 h-4" /> Geodle Trainer</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
                 <p className="text-sm text-muted-foreground">Enter the room code shared by your friend to join the challenge</p>
                 
                 <div className="relative">
@@ -384,64 +351,6 @@ export default function DashboardClient() {
           </motion.div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="grid md:grid-cols-3 gap-6"
-        >
-          <Card className="overflow-hidden border-primary/25 bg-gradient-to-br from-primary/10 via-card to-card">
-            <CardContent className="p-6 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 shrink-0 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
-                  <Flag className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-display font-bold">Flag Trainer</h2>
-                  <p className="text-sm text-muted-foreground">Practice country flags at your own pace. Correct answers move straight to the next flag.</p>
-                </div>
-              </div>
-              <Button size="lg" onClick={() => router.push('/training/flags')}>
-                Start Training
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </CardContent>
-          </Card>
-          <Card className="overflow-hidden border-primary/25 bg-gradient-to-br from-primary/10 via-card to-card">
-            <CardContent className="p-6 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 shrink-0 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
-                  <Globe2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-display font-bold">Capital Trainer</h2>
-                  <p className="text-sm text-muted-foreground">See a country and type its capital. Correct answers take you straight to the next question.</p>
-                </div>
-              </div>
-              <Button size="lg" onClick={() => router.push('/training/capitals')}>
-                Start Training
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </CardContent>
-          </Card>
-          <Card className="overflow-hidden border-primary/25 bg-gradient-to-br from-primary/10 via-card to-card">
-            <CardContent className="p-6 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 shrink-0 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
-                  <Globe2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-display font-bold">Geodle Trainer</h2>
-                  <p className="text-sm text-muted-foreground">Practice the clue-based country guessing mode with unlimited games.</p>
-                </div>
-              </div>
-              <Button size="lg" onClick={() => router.push('/training/geodle')}>
-                Start Training
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
       </main>
     </div>
   );
