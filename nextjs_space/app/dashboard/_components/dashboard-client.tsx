@@ -47,6 +47,7 @@ export default function DashboardClient() {
   const [joining, setJoining] = useState(false);
   const [history, setHistory] = useState<MatchHistory[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const [showRecentMatches, setShowRecentMatches] = useState(false);
   const [friendName, setFriendName] = useState('');
   const [friends, setFriends] = useState<{ id: string; username: string; avatarUrl?: string | null }[]>([]);
   const [incoming, setIncoming] = useState<{ id: string; user: { id: string; username: string; avatarUrl?: string | null } }[]>([]);
@@ -315,8 +316,16 @@ export default function DashboardClient() {
                   Join Room
                 </Button>
 
+                <Button variant="outline" className="w-full justify-between" onClick={() => setShowRecentMatches((value) => !value)}>
+                  <span className="flex items-center gap-2">
+                    <History className="w-4 h-4" />
+                    Recent Matches
+                  </span>
+                  <Badge variant="secondary">{history?.length ?? 0}</Badge>
+                </Button>
+
                 {/* Match history preview */}
-                {(history?.length ?? 0) > 0 && (
+                {showRecentMatches && (history?.length ?? 0) > 0 && (
                   <div className="pt-4 border-t border-border">
                     <h3 className="text-sm font-medium flex items-center gap-2 mb-3">
                       <History className="w-4 h-4 text-muted-foreground" />
@@ -344,6 +353,11 @@ export default function DashboardClient() {
                         );
                       })}
                     </div>
+                  </div>
+                )}
+                {showRecentMatches && (history?.length ?? 0) === 0 && (
+                  <div className="text-center text-sm text-muted-foreground rounded-lg border border-dashed p-4">
+                    No recent matches yet.
                   </div>
                 )}
               </CardContent>
