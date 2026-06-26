@@ -109,6 +109,21 @@ export function normalizeCountryName(value: unknown) {
   return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+function distance(a: string, b: string) {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+      );
+    }
+  }
+  return dp[a.length][b.length];
+}
+
 export function findGeodleFact(countryName: string) {
   const normalized = normalizeCountryName(countryName);
   const aliases: Record<string, string> = {
@@ -122,5 +137,13 @@ export function findGeodleFact(countryName: string) {
     czechia: 'Czech Republic',
   };
   if (aliases[normalized]) return GEODLE_FACTS[aliases[normalized]] ?? null;
-  return Object.values(GEODLE_FACTS).find((fact) => normalizeCountryName(fact.name) === normalized) ?? null;
+  const exact = Object.values(GEODLE_FACTS).find((fact) => normalizeCountryName(fact.name) === normalized);
+  if (exact) return exact;
+
+  const close = Object.values(GEODLE_FACTS)
+    .map((fact) => ({ fact, distance: distance(normalized, normalizeCountryName(fact.name)) }))
+    .sort((a, b) => a.distance - b.distance)[0];
+  if (close && close.distance <= Math.max(2, Math.floor(normalized.length * 0.18))) return close.fact;
+
+  return null;
 }
